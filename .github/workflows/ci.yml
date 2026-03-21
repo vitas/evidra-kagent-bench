@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Run structure tests
+        run: bash tests/test_private_demo_compose.sh
+
+      - name: Check scripts are executable
+        run: |
+          for script in demo/run_private_demo.sh demo/scripts/*.sh; do
+            test -x "$script" || { echo "FAIL: $script not executable"; exit 1; }
+          done
+
+      - name: Shellcheck demo scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: demo/scripts
+          severity: warning

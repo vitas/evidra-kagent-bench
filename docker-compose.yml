@@ -1,0 +1,222 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: evidra
+      POSTGRES_PASSWORD: evidra
+      POSTGRES_DB: evidra
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evidra"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  evidra-api:
+    image: ${EVIDRA_API_IMAGE:-ghcr.io/vitas/evidra-api:latest}
+    ports:
+      - "${DEMO_EVIDRA_API_PORT:-28080}:8080"
+    environment:
+      - DATABASE_URL=postgres://evidra:evidra@postgres:5432/evidra?sslmode=disable
+      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
+      - EVIDRA_SIGNING_MODE=optional
+      - LISTEN_ADDR=:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mcp-backend:
+    image: ghcr.io/rohitg00/kubectl-mcp-server:latest
+    environment:
+      - KUBECONFIG=/kube/config
+    command: ["--transport", "streamable-http", "--port", "3005"]
+    volumes:
+      - kubeconfig:/kube
+    networks:
+      - default
+      - kind
+
+  bridge:
+    image: ${EVIDRA_BRIDGE_IMAGE:-ghcr.io/vitas/evidra-agentgateway-bridge:latest}
+    environment:
+      - EVIDRA_BASE_URL=http://evidra-api:8080
+      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
+      - EVIDRA_BRIDGE_LISTEN_ADDR=:4318
+    depends_on:
+      evidra-api:
+        condition: service_started
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.121.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./demo/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    depends_on:
+      bridge:
+        condition: service_started
+
+  agentgateway:
+    image: cr.agentgateway.dev/agentgateway:0.11.1
+    command: ["--file", "/etc/agentgateway/config.yaml"]
+    ports:
+      - "${DEMO_AGENTGATEWAY_PORT:-23000}:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./demo/agentgateway/config.yaml:/etc/agentgateway/config.yaml:ro
+    depends_on:
+      mcp-backend:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    networks:
+      - default
+      - kind
+
+  kagent:
+    build:
+      context: ./demo/kagent
+      dockerfile: Dockerfile
+    environment:
+      - KAGENT_URL=http://unused.local
+      - KAGENT_NAME=demoagent
+      - KAGENT_NAMESPACE=demo
+      - KAGENT_MCP_URL=http://agentgateway:3000/mcp/http
+      - KAGENT_MODEL=${KAGENT_MODEL:-qwen-plus}
+      - OPENAI_BASE_URL=${BIFROST_BASE_URL:-}
+      - OPENAI_API_KEY=${BIFROST_API_KEY:-}
+      - KAGENT_SYSTEM_PROMPT_FILE=/demo/prompts/kagent-${DEMO_RUN_LABEL:-before}.md
+    volumes:
+      - ./demo/prompts:/demo/prompts:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    depends_on:
+      agentgateway:
+        condition: service_started
+    networks:
+      - default
+      - kind
+
+  kind-bootstrap:
+    build:
+      context: .
+      dockerfile: demo/kind/Dockerfile
+    environment:
+      - DEMO_CLUSTER_NAME=${DEMO_CLUSTER_NAME:-evidra-demo}
+      - KUBECONFIG_DIR=/kube
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./demo/kind/kind-config.yaml:/demo/kind-config.yaml:ro
+      - kubeconfig:/kube
+
+  demo-seed:
+    image: evidra-demo-runtime:local
+    entrypoint: ["/bin/sh"]
+    command: ["/demo/scripts/seed_case.sh"]
+    environment:
+      - DEMO_CASE=${DEMO_CASE:-broken-deployment}
+      - KUBECONFIG=/kube/config
+      - DEMO_ARTIFACTS_DIR=/artifacts
+      - DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}
+    depends_on:
+      kind-bootstrap:
+        condition: service_completed_successfully
+    volumes:
+      - kubeconfig:/kube
+      - artifacts:/artifacts
+      - ./demo/scripts/seed_case.sh:/demo/scripts/seed_case.sh:ro
+      - ./demo/manifests:/demo/manifests:ro
+    networks:
+      - default
+      - kind
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  kagent-runner:
+    image: evidra-demo-runtime:local
+    entrypoint: ["/bin/sh"]
+    command: ["/demo/scripts/run_kagent.sh"]
+    environment:
+      - KUBECONFIG=/kube/config
+      - DEMO_CASE=${DEMO_CASE:-broken-deployment}
+      - KAGENT_RUNNER_COMMAND=${KAGENT_RUNNER_COMMAND:-}
+      - KAGENT_MODEL=${KAGENT_MODEL:-qwen-plus}
+      - BIFROST_BASE_URL=${BIFROST_BASE_URL:-}
+      - BIFROST_API_KEY=${BIFROST_API_KEY:-}
+      - KAGENT_PROMPTS_DIR=/demo/prompts
+      - KAGENT_SERVICE_URL=http://kagent:8080
+      - AGENTGATEWAY_BASE_URL=http://host.docker.internal:${DEMO_AGENTGATEWAY_PORT:-23000}
+      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_EVIDRA_API_PORT:-28080}
+      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
+      - DEMO_ARTIFACTS_DIR=/artifacts
+      - DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}
+    depends_on:
+      demo-seed:
+        condition: service_completed_successfully
+      kagent:
+        condition: service_started
+    volumes:
+      - kubeconfig:/kube
+      - artifacts:/artifacts
+      - ./demo/scripts/run_kagent.sh:/demo/scripts/run_kagent.sh:ro
+      - ./demo/manifests:/demo/manifests:ro
+      - ./demo/prompts:/demo/prompts:ro
+    networks:
+      - default
+      - kind
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  demo-verify:
+    image: evidra-demo-runtime:local
+    entrypoint: ["/bin/sh"]
+    command: ["/demo/scripts/verify_run.sh"]
+    environment:
+      - KUBECONFIG=/kube/config
+      - DEMO_CASE=${DEMO_CASE:-broken-deployment}
+      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_EVIDRA_API_PORT:-28080}
+      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
+      - DEMO_ARTIFACTS_DIR=/artifacts
+      - DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}
+      - KAGENT_MODEL=${KAGENT_MODEL:-qwen-plus}
+    depends_on:
+      kagent-runner:
+        condition: service_completed_successfully
+    volumes:
+      - kubeconfig:/kube
+      - artifacts:/artifacts
+      - ./demo/scripts/verify_run.sh:/demo/scripts/verify_run.sh:ro
+      - ./demo/manifests:/demo/manifests:ro
+    networks:
+      - default
+      - kind
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  demo-compare:
+    image: evidra-demo-runtime:local
+    entrypoint: ["/bin/sh"]
+    command: ["/demo/scripts/compare_runs.sh"]
+    environment:
+      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_EVIDRA_API_PORT:-28080}
+      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
+      - DEMO_ARTIFACTS_DIR=/artifacts
+    volumes:
+      - artifacts:/artifacts
+      - ./demo/scripts/compare_runs.sh:/demo/scripts/compare_runs.sh:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  pgdata:
+  kubeconfig:
+  artifacts:
+
+networks:
+  kind:
+    external: true

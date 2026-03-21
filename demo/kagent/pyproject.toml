@@ -1,7 +1,7 @@
 [project]
 name = "demoagent"
 version = "0.1.0"
-description = "Private demo kagent agent"
+description = "Kagent agent for Evidra benchmark harness"
 dependencies = [
   "google-adk==1.25.1",
 ]

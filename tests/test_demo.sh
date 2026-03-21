@@ -44,14 +44,14 @@ for path in \
   demo/kagent/demoagent/agent-card.json \
   demo/kagent/demoagent/mcp_tools.py \
   demo/runtime/Dockerfile \
-  demo/run_private_demo.sh \
+  demo/run.sh \
   demo/scripts/kind_bootstrap.sh \
   demo/scripts/kind_teardown.sh \
   demo/scripts/seed_case.sh \
   demo/scripts/run_kagent.sh \
   demo/scripts/verify_run.sh \
   demo/scripts/compare_runs.sh \
-  docs/guides/private-demo-compose.md \
+  docs/guides/demo-compose.md \
   demo/manifests/broken-deployment/baseline.yaml \
   demo/manifests/broken-deployment/break.yaml \
   demo/manifests/repair-loop-escalation/baseline.yaml \
@@ -63,8 +63,8 @@ done
 grep -Fq 'repair-loop-escalation' demo/scripts/seed_case.sh \
   || fail "seed script should support repair-loop-escalation"
 
-grep -Fq 'repair-loop-escalation' docs/guides/private-demo-compose.md \
-  || fail "private demo guide should mention repair-loop-escalation"
+grep -Fq 'repair-loop-escalation' docs/guides/demo-compose.md \
+  || fail "demo guide should mention repair-loop-escalation"
 
 for path in \
   demo/prompts/kagent-before.md \
@@ -73,29 +73,20 @@ do
   [ -f "$path" ] || fail "missing $path"
 done
 
-grep -Fq 'qwen-plus' demo/.env.demo.example \
-  || fail "demo env example should mention qwen-plus"
+grep -Fq 'kagent-before.md' docs/guides/demo-compose.md \
+  || fail "demo guide should mention kagent-before.md"
 
-grep -Fq 'BIFROST_BASE_URL' demo/.env.demo.example \
-  || fail "demo env example should mention BIFROST_BASE_URL"
+grep -Fq 'kagent-after.md' docs/guides/demo-compose.md \
+  || fail "demo guide should mention kagent-after.md"
 
-grep -Fq 'kagent-before.md' docs/guides/private-demo-compose.md \
-  || fail "private demo guide should mention kagent-before.md"
+grep -Fq '25-30 seconds' docs/guides/demo-compose.md \
+  || fail "demo guide should mention kagent startup latency"
 
-grep -Fq 'kagent-after.md' docs/guides/private-demo-compose.md \
-  || fail "private demo guide should mention kagent-after.md"
+grep -Fq 'source-build workaround' docs/guides/demo-compose.md \
+  || fail "demo guide should mention the kagent source-build workaround"
 
-grep -Fq '25-30 seconds' docs/guides/private-demo-compose.md \
-  || fail "private demo guide should mention kagent startup latency"
-
-grep -Fq 'source-build workaround' docs/guides/private-demo-compose.md \
-  || fail "private demo guide should mention the kagent source-build workaround"
-
-[ -x demo/run_private_demo.sh ] \
-  || fail "demo/run_private_demo.sh should be executable"
-
-[ -f demo/.env.demo.example ] \
-  || fail "missing demo/.env.demo.example"
+[ -x demo/run.sh ] \
+  || fail "demo/run.sh should be executable"
 
 grep -Eq '^[[:space:]]+pgdata:' "$compose_file" \
   || fail "postgres should use a named pgdata volume"
@@ -199,13 +190,13 @@ grep -Fq './demo/manifests:/demo/manifests:ro' "$compose_file" \
 grep -Fq 'http://mcp-backend:3005/mcp' demo/agentgateway/config.yaml \
   || fail "AgentGateway should target the in-stack MCP backend"
 
-grep -Fq 'kubectl-mcp-server' docs/guides/private-demo-compose.md \
-  || fail "private demo guide should mention kubectl-mcp-server"
+grep -Fq 'kubectl-mcp-server' docs/guides/demo-compose.md \
+  || fail "demo guide should mention kubectl-mcp-server"
 
-grep -Fq 'docker build -t evidra-demo-runtime:local' demo/run_private_demo.sh \
+grep -Fq 'docker build -t evidra-demo-runtime:local' demo/run.sh \
   || fail "wrapper should build the shared demo runtime image"
 
-grep -Fq 'kagent' demo/run_private_demo.sh \
+grep -Fq 'kagent' demo/run.sh \
   || fail "wrapper should mention the kagent service"
 
 for pattern in \
@@ -215,7 +206,7 @@ for pattern in \
   '/artifacts/before' \
   '/artifacts/after'
 do
-  grep -Fq "$pattern" demo/run_private_demo.sh demo/scripts/run_kagent.sh demo/scripts/verify_run.sh \
+  grep -Fq "$pattern" demo/run.sh demo/scripts/run_kagent.sh demo/scripts/verify_run.sh \
     || fail "paired mode support should include $pattern"
 done
 
@@ -266,8 +257,8 @@ for pattern in \
   'mcp-backend' \
   'bridge'
 do
-  grep -Fq "$pattern" docs/guides/private-demo-compose.md \
-    || fail "private demo guide should mention $pattern"
+  grep -Fq "$pattern" docs/guides/demo-compose.md \
+    || fail "demo guide should mention $pattern"
 done
 
 for pattern in \
@@ -275,12 +266,12 @@ for pattern in \
   'run --rm --no-deps kagent-runner' \
   'run --rm --no-deps demo-verify'
 do
-  grep -Fq "$pattern" demo/run_private_demo.sh \
+  grep -Fq "$pattern" demo/run.sh \
     || fail "wrapper should use $pattern"
 done
 
 # Verify demo uses real Evidra APIs (not invented endpoints).
-grep -Fq 'demo-compare' demo/run_private_demo.sh \
+grep -Fq 'demo-compare' demo/run.sh \
   || fail "wrapper should run demo-compare in both mode"
 
 grep -Fq '/v1/evidence/scorecard' demo/scripts/verify_run.sh \
@@ -304,10 +295,10 @@ grep -Fq 'bench_run_id' demo/scripts/compare_runs.sh \
 grep -Fq './demo/scripts/compare_runs.sh:/demo/scripts/compare_runs.sh:ro' "$compose_file" \
   || fail "demo-compare should mount its compare script"
 
-grep -Fq 'demo-compare' docs/guides/private-demo-compose.md \
-  || fail "private demo guide should mention demo-compare"
+grep -Fq 'demo-compare' docs/guides/demo-compose.md \
+  || fail "demo guide should mention demo-compare"
 
-grep -Fq '/v1/bench/compare/runs' docs/guides/private-demo-compose.md \
-  || fail "private demo guide should mention bench compare endpoint"
+grep -Fq '/v1/bench/compare/runs' docs/guides/demo-compose.md \
+  || fail "demo guide should mention bench compare endpoint"
 
-echo "PASS: test_private_demo_compose"
+echo "PASS: test_demo"

@@ -34,7 +34,7 @@ def get_mcp_tools(
     server_filters: Optional[Union[ToolPredicate, List[str]]] = None,
     global_filter: Optional[Union[ToolPredicate, List[str]]] = None,
 ) -> List[MCPToolset]:
-    del server_names
+    del server_names  # Required by ADK ToolProvider interface; unused in single-backend setup.
 
     url = os.getenv("KAGENT_MCP_URL", "http://agentgateway:3000/mcp/http")
     headers = {}

@@ -15,7 +15,7 @@ export BIFROST_API_KEY=your-key
 export KAGENT_MODEL=llama-3.3-70b-versatile
 
 # Run both modes (before/after prompt comparison)
-DEMO_RUN_MODE=both ./demo/run_private_demo.sh
+DEMO_RUN_MODE=both ./demo/run.sh
 ```
 
 ## Architecture
@@ -60,7 +60,7 @@ kagent → AgentGateway → mcp-backend (kubectl) → Kind cluster
 ## Tests
 
 ```bash
-bash tests/test_private_demo_compose.sh
+bash tests/test_demo.sh
 ```
 
 ## Evidra APIs Used

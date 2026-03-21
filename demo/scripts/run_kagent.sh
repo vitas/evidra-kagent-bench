@@ -4,8 +4,6 @@ set -eu
 artifacts_dir="${DEMO_ARTIFACTS_DIR:-/artifacts}"
 run_label="${DEMO_RUN_LABEL:-before}"
 mode_artifacts_dir="${artifacts_dir}/${run_label}"
-before_artifacts_dir="${DEMO_ARTIFACTS_DIR:-/artifacts}/before"
-after_artifacts_dir="${DEMO_ARTIFACTS_DIR:-/artifacts}/after"
 agentgateway_base="${AGENTGATEWAY_BASE_URL:-http://agentgateway:3000}"
 kagent_service_url="${KAGENT_SERVICE_URL:-http://kagent:8080}"
 case_name="${DEMO_CASE:-broken-deployment}"
@@ -14,7 +12,7 @@ selected_prompt="${KAGENT_SYSTEM_PROMPT_FILE:-}"
 runner_mode="${KAGENT_RUNNER_MODE:-auto}"
 resolved_runner_mode="$runner_mode"
 
-mkdir -p "$before_artifacts_dir" "$after_artifacts_dir" "$mode_artifacts_dir"
+mkdir -p "${DEMO_ARTIFACTS_DIR:-/artifacts}/before" "${DEMO_ARTIFACTS_DIR:-/artifacts}/after" "$mode_artifacts_dir"
 
 if [ -z "$selected_prompt" ]; then
   case "$run_label" in
@@ -83,7 +81,7 @@ run_direct_mcp_fallback() {
     -H 'Content-Type: application/json' \
     -H 'Accept: application/json, text/event-stream' \
     "$agentgateway_base/mcp/http" \
-    -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"private-demo","version":"0.1.0"}}}'
+    -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"evidra-bench","version":"0.1.0"}}}'
   do
     attempt=$((attempt + 1))
     if [ "$attempt" -ge 30 ]; then
@@ -158,7 +156,7 @@ run_kagent_service() {
     -d "$(jq -cn --arg message_id "$message_id" --rawfile task "$task_file" '
       {
         jsonrpc: "2.0",
-        id: "private-demo",
+        id: "evidra-bench",
         method: "message/send",
         params: {
           message: {

@@ -43,7 +43,7 @@ def create_model() -> LiteLlm:
 root_agent = Agent(
     model=create_model(),
     name="demoagent_agent",
-    description="Private demo Kubernetes remediation agent.",
+    description="Kubernetes remediation agent for Evidra benchmark.",
     instruction=load_instruction(),
     tools=get_mcp_tools(),
 )

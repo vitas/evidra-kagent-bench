@@ -43,13 +43,11 @@ docker compose -f docker-compose.yml run --rm demo-compare   # after "both" mode
 For a single wrapper command, run:
 
 ```bash
-./demo/run_private_demo.sh
+./demo/run.sh
 ```
 
 Optional:
 
-- `EVIDRA_AGENTGATEWAY_BRIDGE_PATH`
-  points the wrapper at a local checkout/worktree of `evidra-agentgateway-bridge`
 - `KAGENT_MODEL`
   defaults to `qwen-plus`
 - `BIFROST_BASE_URL`

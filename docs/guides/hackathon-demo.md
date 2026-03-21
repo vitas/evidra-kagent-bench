@@ -121,8 +121,8 @@ The tuned prompt produces a measurably higher reliability score.
 | Service | Role | Image |
 |---------|------|-------|
 | **postgres** | Evidence database | `postgres:17-alpine` |
-| **evidra-api** | REST API + embedded UI | Built from `Dockerfile.api` |
-| **bridge** | OTLP → Evidra ingest translator | Built from bridge repo |
+| **evidra-api** | REST API + embedded UI | `ghcr.io/vitas/evidra-api:latest` |
+| **bridge** | OTLP → Evidra ingest translator | `ghcr.io/vitas/evidra-agentgateway-bridge:latest` |
 | **agentgateway** | MCP HTTP gateway + trace emitter | `cr.agentgateway.dev/agentgateway:0.11.1` |
 | **mcp-backend** | Kubernetes MCP tools | `ghcr.io/rohitg00/kubectl-mcp-server:latest` |
 | **kagent** | AI remediation agent | Built from `demo/kagent/Dockerfile` |
@@ -202,20 +202,17 @@ mutations, more verification steps, and a higher Evidra reliability score.
 
 - Docker with compose v2
 - An OpenAI-compatible LLM API key (Claude, Groq, OpenRouter, Ollama)
-- The evidra-agentgateway-bridge repo checked out locally
 
 ### Quick Start
 
 ```bash
 # Set your LLM provider
-export OPENAI_BASE_URL=https://api.groq.com/openai/v1  # or any provider
-export OPENAI_API_KEY=your-key
-export BIFROST_BASE_URL=$OPENAI_BASE_URL
-export BIFROST_API_KEY=$OPENAI_API_KEY
-export KAGENT_MODEL=llama-3.3-70b-versatile  # or any tool-calling model
+export BIFROST_BASE_URL=https://api.groq.com/openai/v1
+export BIFROST_API_KEY=your-key
+export KAGENT_MODEL=llama-3.3-70b-versatile
 
 # Run both modes
-DEMO_RUN_MODE=both ./demo/run_private_demo.sh
+DEMO_RUN_MODE=both ./demo/run.sh
 ```
 
 ### What Happens

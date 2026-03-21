@@ -16,11 +16,11 @@ jobs:
         run: docker compose -f docker-compose.yml config --quiet
 
       - name: Run structure tests
-        run: bash tests/test_private_demo_compose.sh
+        run: bash tests/test_demo.sh
 
       - name: Check scripts are executable
         run: |
-          for script in demo/run_private_demo.sh demo/scripts/*.sh; do
+          for script in demo/run.sh demo/scripts/*.sh; do
             test -x "$script" || { echo "FAIL: $script not executable"; exit 1; }
           done
 

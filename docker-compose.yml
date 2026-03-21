@@ -123,9 +123,6 @@ services:
       - KUBECONFIG=/kube/config
       - DEMO_ARTIFACTS_DIR=/artifacts
       - DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}
-    depends_on:
-      kind-bootstrap:
-        condition: service_completed_successfully
     volumes:
       - kubeconfig:/kube
       - artifacts:/artifacts
@@ -134,8 +131,6 @@ services:
     networks:
       - default
       - kind
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   kagent-runner:
     image: evidra-demo-runtime:local
@@ -164,7 +159,6 @@ services:
       - kubeconfig:/kube
       - artifacts:/artifacts
       - ./demo/scripts/run_kagent.sh:/demo/scripts/run_kagent.sh:ro
-      - ./demo/manifests:/demo/manifests:ro
       - ./demo/prompts:/demo/prompts:ro
     networks:
       - default

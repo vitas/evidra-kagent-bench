@@ -8,16 +8,14 @@ api_host="${DEMO_KIND_API_HOST:-host.docker.internal}"
 
 mkdir -p "$kubeconfig_dir"
 
-if kind get clusters | grep -Fxq "$cluster_name"; then
-  kind export kubeconfig --name "$cluster_name" --kubeconfig "$kubeconfig_path"
-else
+if ! kind get clusters | grep -Fxq "$cluster_name"; then
   kind create cluster \
     --name "$cluster_name" \
     --config /demo/kind-config.yaml \
     --kubeconfig "$kubeconfig_path"
-
-  kind export kubeconfig --name "$cluster_name" --kubeconfig "$kubeconfig_path"
 fi
+
+kind export kubeconfig --name "$cluster_name" --kubeconfig "$kubeconfig_path"
 
 api_port="$(awk -F: '/server: https:\/\/127\.0\.0\.1:/{print $NF}' "$kubeconfig_path" | head -n1)"
 

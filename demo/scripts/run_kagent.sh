@@ -9,40 +9,18 @@ kagent_service_url="${KAGENT_SERVICE_URL:-http://kagent:8080}"
 case_name="${DEMO_CASE:-broken-deployment}"
 prompt_root="${KAGENT_PROMPTS_DIR:-/demo/prompts}"
 selected_prompt="${KAGENT_SYSTEM_PROMPT_FILE:-}"
-runner_mode="${KAGENT_RUNNER_MODE:-auto}"
-resolved_runner_mode="$runner_mode"
+run_mode="${KAGENT_RUNNER_MODE:-auto}"
 
-mkdir -p "${DEMO_ARTIFACTS_DIR:-/artifacts}/before" "${DEMO_ARTIFACTS_DIR:-/artifacts}/after" "$mode_artifacts_dir"
+mkdir -p "$mode_artifacts_dir"
 
 if [ -z "$selected_prompt" ]; then
-  case "$run_label" in
-    before)
-      selected_prompt="${prompt_root}/kagent-before.md"
-      ;;
-    after)
-      selected_prompt="${prompt_root}/kagent-after.md"
-      ;;
-    *)
-      selected_prompt="${prompt_root}/kagent-before.md"
-      ;;
-  esac
+  selected_prompt="${prompt_root}/kagent-${run_label}.md"
 fi
 
 printf '%s\n' "$selected_prompt" > "$mode_artifacts_dir/prompt_file"
 if [ -f "$selected_prompt" ]; then
   cp "$selected_prompt" "$mode_artifacts_dir/prompt.md"
 fi
-
-extract_mcp_json() {
-  input_file="$1"
-  output_file="$2"
-
-  if grep -q '^data: ' "$input_file"; then
-    awk '/^data: /{sub(/^data: /, ""); print}' "$input_file" | tail -n 1 > "$output_file"
-  else
-    cp "$input_file" "$output_file"
-  fi
-}
 
 scenario_task() {
   case "$case_name" in
@@ -68,11 +46,10 @@ run_direct_mcp_fallback() {
 
   headers="$(mktemp)"
   body="$(mktemp)"
-  body_json="$(mktemp)"
   call_body="$(mktemp)"
   call_body_json="$(mktemp)"
   cleanup() {
-    rm -f "$headers" "$body" "$body_json" "$call_body" "$call_body_json"
+    rm -f "$headers" "$body" "$call_body" "$call_body_json"
   }
   trap cleanup EXIT
 
@@ -98,8 +75,11 @@ run_direct_mcp_fallback() {
   fi
   printf '%s\n' "$session_id" > "$mode_artifacts_dir/mcp_session_id"
 
-  extract_mcp_json "$body" "$body_json"
-  jq -e '.result.protocolVersion' "$body_json" >/dev/null
+  if grep -q '^data: ' "$body"; then
+    awk '/^data: /{sub(/^data: /, ""); print}' "$body" | tail -n 1 | jq -e '.result.protocolVersion' >/dev/null
+  else
+    jq -e '.result.protocolVersion' "$body" >/dev/null
+  fi
 
   curl -fsS -o "$call_body" \
     -H 'Content-Type: application/json' \
@@ -122,7 +102,11 @@ run_direct_mcp_fallback() {
       }
     ')"
 
-  extract_mcp_json "$call_body" "$call_body_json"
+  if grep -q '^data: ' "$call_body"; then
+    awk '/^data: /{sub(/^data: /, ""); print}' "$call_body" | tail -n 1 > "$call_body_json"
+  else
+    cp "$call_body" "$call_body_json"
+  fi
   jq -e '.result' "$call_body_json" >/dev/null
   cp "$call_body_json" "$mode_artifacts_dir/tools_call_response.json"
   echo "fallback runner executed scale_deployment via AgentGateway for $run_label"
@@ -189,17 +173,17 @@ if [ -n "${KAGENT_RUNNER_COMMAND:-}" ]; then
   exec /bin/sh -lc "$KAGENT_RUNNER_COMMAND"
 fi
 
-if [ "$runner_mode" = "auto" ]; then
+if [ "$run_mode" = "auto" ]; then
   if [ -n "${BIFROST_BASE_URL:-}" ] && [ -n "${BIFROST_API_KEY:-}" ]; then
-    resolved_runner_mode="service"
+    run_mode="service"
   else
-    resolved_runner_mode="direct-mcp"
+    run_mode="direct-mcp"
   fi
 fi
 
-printf '%s\n' "$resolved_runner_mode" > "$mode_artifacts_dir/resolved_runner_mode"
+printf '%s\n' "$run_mode" > "$mode_artifacts_dir/run_mode"
 
-case "$resolved_runner_mode" in
+case "$run_mode" in
   service)
     run_kagent_service
     ;;
@@ -207,7 +191,7 @@ case "$resolved_runner_mode" in
     run_direct_mcp_fallback
     ;;
   *)
-    echo "unsupported KAGENT_RUNNER_MODE: $runner_mode" >&2
+    echo "unsupported KAGENT_RUNNER_MODE: $run_mode" >&2
     exit 1
     ;;
 esac

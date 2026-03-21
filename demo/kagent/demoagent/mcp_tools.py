@@ -1,11 +1,9 @@
 import os
-from typing import List, Optional, Union
 
-from google.adk.tools.base_toolset import ToolPredicate
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StreamableHTTPConnectionParams
 
 # Only expose tools the demo agent actually needs.
-# Keeps the tool list small → fewer tokens per turn, cheaper and faster.
+# Keeps the tool list small -> fewer tokens per turn, cheaper and faster.
 DEMO_TOOL_ALLOW_LIST = {
     "get_pod_logs",
     "get_pods",
@@ -29,28 +27,11 @@ def _demo_tool_filter(tool) -> bool:
     return tool.name in allowed
 
 
-def get_mcp_tools(
-    server_names: Optional[List[str]] = None,
-    server_filters: Optional[Union[ToolPredicate, List[str]]] = None,
-    global_filter: Optional[Union[ToolPredicate, List[str]]] = None,
-) -> List[MCPToolset]:
-    del server_names  # Required by ADK ToolProvider interface; unused in single-backend setup.
-
+def get_mcp_tools() -> list[MCPToolset]:
     url = os.getenv("KAGENT_MCP_URL", "http://agentgateway:3000/mcp/http")
     headers = {}
     api_key = os.getenv("EVIDRA_API_KEY")
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-
-    # Use demo filter unless caller provides one.
-    predicate = global_filter
-    if server_filters and "kubernetes" in server_filters:
-        predicate = server_filters["kubernetes"]
-    if predicate is None:
-        predicate = _demo_tool_filter
-
-    if headers:
-        connection_params = StreamableHTTPConnectionParams(url=url, headers=headers)
-    else:
-        connection_params = StreamableHTTPConnectionParams(url=url)
-    return [MCPToolset(connection_params=connection_params, tool_filter=predicate)]
+    connection_params = StreamableHTTPConnectionParams(url=url, headers=headers)
+    return [MCPToolset(connection_params=connection_params, tool_filter=_demo_tool_filter)]

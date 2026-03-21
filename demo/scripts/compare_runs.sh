@@ -5,11 +5,6 @@ evidra_base="${EVIDRA_BASE_URL:-http://evidra-api:8080}"
 api_key="${EVIDRA_API_KEY:-}"
 artifacts_dir="${DEMO_ARTIFACTS_DIR:-/artifacts}"
 
-if [ -z "$api_key" ]; then
-  echo "EVIDRA_API_KEY is required" >&2
-  exit 1
-fi
-
 before_id_file="${artifacts_dir}/before/bench_run_id"
 after_id_file="${artifacts_dir}/after/bench_run_id"
 

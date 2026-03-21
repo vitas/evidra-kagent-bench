@@ -14,15 +14,6 @@ run_mode="${DEMO_RUN_MODE:-before}"
 run_single_mode() {
   local mode="$1"
 
-  case "$mode" in
-    before|after) ;;
-    *)
-      echo "unsupported DEMO_RUN_MODE entry: $mode" >&2
-      exit 1
-      ;;
-  esac
-
-  DEMO_RUN_LABEL="$mode" "${compose[@]}" run --rm kind-bootstrap
   DEMO_RUN_LABEL="$mode" "${compose[@]}" run --rm --no-deps demo-seed
   DEMO_RUN_LABEL="$mode" "${compose[@]}" up -d --force-recreate kagent
   DEMO_RUN_LABEL="$mode" "${compose[@]}" run --rm --no-deps kagent-runner

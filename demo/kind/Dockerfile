@@ -9,8 +9,7 @@ RUN curl -fsSLo /usr/local/bin/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}
 WORKDIR /workspace
 
 COPY demo/scripts/kind_bootstrap.sh /demo/scripts/kind_bootstrap.sh
-COPY demo/scripts/kind_teardown.sh /demo/scripts/kind_teardown.sh
 
-RUN chmod +x /demo/scripts/kind_bootstrap.sh /demo/scripts/kind_teardown.sh
+RUN chmod +x /demo/scripts/kind_bootstrap.sh
 
 ENTRYPOINT ["/bin/sh", "/demo/scripts/kind_bootstrap.sh"]

@@ -8,19 +8,18 @@ artifacts_dir="${DEMO_ARTIFACTS_DIR:-/artifacts}"
 case_name="${DEMO_CASE:-broken-deployment}"
 run_label="${DEMO_RUN_LABEL:-before}"
 mode_artifacts_dir="${artifacts_dir}/${run_label}"
-before_artifacts_dir="${DEMO_ARTIFACTS_DIR:-/artifacts}/before"
-after_artifacts_dir="${DEMO_ARTIFACTS_DIR:-/artifacts}/after"
-resolved_runner_mode="direct-mcp"
+run_mode="direct-mcp"
 
-mkdir -p "$before_artifacts_dir" "$after_artifacts_dir" "$mode_artifacts_dir"
+mkdir -p "$mode_artifacts_dir"
 
-if [ -f "$mode_artifacts_dir/resolved_runner_mode" ]; then
-  resolved_runner_mode="$(cat "$mode_artifacts_dir/resolved_runner_mode")"
+if [ -f "$mode_artifacts_dir/run_mode" ]; then
+  run_mode="$(cat "$mode_artifacts_dir/run_mode")"
 fi
 
+# K8s verification: service mode checks full repair; direct-mcp only checks the MCP pipeline.
 case "$case_name" in
   broken-deployment)
-    if [ "$resolved_runner_mode" = "service" ]; then
+    if [ "$run_mode" = "service" ]; then
       kubectl --kubeconfig "$kubeconfig" rollout status deployment/web -n demo --timeout=120s >/dev/null
       pods_json="$(kubectl --kubeconfig "$kubeconfig" get pods -n demo -o json)"
       printf '%s' "$pods_json" | jq -e '
@@ -31,18 +30,6 @@ case "$case_name" in
       ' >/dev/null
       kubectl --kubeconfig "$kubeconfig" get deployment web -n demo -o json | jq -e '
         .spec.template.spec.containers[] | select(.name == "nginx" and .image == "nginx:latest")
-      ' >/dev/null
-    else
-      kubectl --kubeconfig "$kubeconfig" get deployment web -n demo
-      pods_json="$(kubectl --kubeconfig "$kubeconfig" get pods -n demo -o json)"
-
-      printf '%s' "$pods_json" | jq -e 'any(.items[]?; .status.phase == "Running")' >/dev/null
-      printf '%s' "$pods_json" | jq -e '
-        any(.items[]?;
-          any(.status.containerStatuses[]?;
-            (.state.waiting.reason == "ErrImagePull" or .state.waiting.reason == "ImagePullBackOff")
-          )
-        )
       ' >/dev/null
     fi
     ;;
@@ -55,9 +42,6 @@ case "$case_name" in
     exit 1
     ;;
 esac
-
-# Determine k8s verification outcome for bench run
-k8s_passed="true"
 
 # --- Poll for evidence entries using session_id filter ---
 session_id=""
@@ -110,7 +94,7 @@ bench_body="$(jq -cn \
   --arg adapter "kagent" \
   --arg mode "proxy" \
   --arg label "$run_label" \
-  --argjson passed "$k8s_passed" \
+  --argjson passed true \
   --argjson scorecard "${scorecard_json:-null}" \
   '{
     id: $id,

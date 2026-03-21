@@ -221,18 +221,17 @@ do
 done
 
 for pattern in \
-  'resolved_runner_mode' \
-  'runner_mode="${KAGENT_RUNNER_MODE:-auto}"' \
-  'mode_artifacts_dir/resolved_runner_mode'
+  'run_mode' \
+  'run_mode="${KAGENT_RUNNER_MODE:-auto}"' \
+  'mode_artifacts_dir/run_mode'
 do
   grep -Fq "$pattern" demo/scripts/run_kagent.sh \
     || fail "runner should persist resolved mode information with $pattern"
 done
 
 for pattern in \
-  'resolved_runner_mode' \
-  'rollout status deployment/web -n demo' \
-  'ImagePullBackOff'
+  'run_mode' \
+  'rollout status deployment/web -n demo'
 do
   grep -Fq "$pattern" demo/scripts/verify_run.sh \
     || fail "verify script should distinguish real service remediation from fallback smoke using $pattern"

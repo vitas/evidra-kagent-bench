@@ -18,7 +18,8 @@ def load_instruction() -> str:
 
 def create_model() -> LiteLlm:
     model_name = os.environ.get("KAGENT_MODEL", "qwen-plus")
-    return LiteLlm(model=f"openai/{model_name}")
+    provider = os.environ.get("KAGENT_MODEL_PROVIDER", "openai")
+    return LiteLlm(model=f"{provider}/{model_name}")
 
 
 root_agent = Agent(

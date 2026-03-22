@@ -92,8 +92,11 @@ services:
       - KAGENT_NAMESPACE=demo
       - KAGENT_MCP_URL=http://agentgateway:3000/mcp/http
       - KAGENT_MODEL=${KAGENT_MODEL:-qwen-plus}
+      - KAGENT_MODEL_PROVIDER=${KAGENT_MODEL_PROVIDER:-openai}
       - OPENAI_BASE_URL=${BIFROST_BASE_URL:-}
       - OPENAI_API_KEY=${BIFROST_API_KEY:-}
+      - GROQ_API_KEY=${BIFROST_API_KEY:-}
+      - LITELLM_LOG=DEBUG
       - KAGENT_SYSTEM_PROMPT_FILE=/demo/prompts/kagent-${DEMO_RUN_LABEL:-before}.md
     volumes:
       - ./demo/prompts:/demo/prompts:ro

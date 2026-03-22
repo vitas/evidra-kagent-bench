@@ -13,7 +13,7 @@ DEMO_TOOL_ALLOW_LIST = {
 }
 
 
-def _demo_tool_filter(tool) -> bool:
+def _demo_tool_filter(tool, ctx=None) -> bool:
     allow_env = os.getenv("KAGENT_TOOL_ALLOW_LIST", "")
     if allow_env:
         allowed = {t.strip() for t in allow_env.split(",") if t.strip()}

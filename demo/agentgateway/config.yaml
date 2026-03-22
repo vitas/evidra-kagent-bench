@@ -17,6 +17,9 @@ binds:
             backends:
               - mcp:
                   targets:
-                    - name: demo
+                    - name: kubernetes
                       mcp:
                         host: http://mcp-backend:3005/mcp
+                    - name: evidra
+                      mcp:
+                        host: http://evidra-mcp:3001/mcp

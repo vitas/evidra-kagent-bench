@@ -24,7 +24,7 @@ run_single_mode() {
 
 docker build -t evidra-demo-runtime:local -f demo/runtime/Dockerfile .
 "${compose[@]}" build kind-bootstrap kagent
-"${compose[@]}" up -d postgres evidra-api bridge otel-collector
+"${compose[@]}" up -d postgres evidra-api evidra-mcp bridge otel-collector
 "${compose[@]}" run --rm kind-bootstrap
 "${compose[@]}" up -d mcp-backend agentgateway
 

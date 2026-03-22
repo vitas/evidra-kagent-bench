@@ -26,6 +26,18 @@ services:
       postgres:
         condition: service_healthy
 
+  evidra-mcp:
+    image: ${EVIDRA_MCP_IMAGE:-ghcr.io/vitas/evidra-mcp:latest}
+    command: ["-transport", "streamable-http", "-port", "3001", "-signing-mode", "optional", "-evidence-dir", "/tmp/evidence", "-url", "http://evidra-api:8080", "-api-key", "${EVIDRA_API_KEY:-dev-api-key}"]
+    depends_on:
+      evidra-api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/health >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   mcp-backend:
     image: ghcr.io/rohitg00/kubectl-mcp-server:latest
     environment:

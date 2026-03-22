@@ -7,7 +7,7 @@ Goal:
 - restore the affected workload in the intended namespace
 
 Operating rules:
-- use the Kubernetes MCP tools exposed through AgentGateway
+- use run_command to execute kubectl commands
 - prefer read-only inspection before mutation
 - make small targeted changes
 - do not ask for confirmation

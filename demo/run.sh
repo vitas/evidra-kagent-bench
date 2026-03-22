@@ -26,7 +26,7 @@ docker build -t evidra-demo-runtime:local -f demo/runtime/Dockerfile .
 "${compose[@]}" build kind-bootstrap kagent
 "${compose[@]}" up -d postgres evidra-api evidra-mcp bridge otel-collector
 "${compose[@]}" run --rm kind-bootstrap
-"${compose[@]}" up -d mcp-backend agentgateway
+"${compose[@]}" up -d agentgateway
 
 case "$run_mode" in
   before|after)

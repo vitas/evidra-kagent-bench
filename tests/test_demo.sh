@@ -17,7 +17,7 @@ compose_file="docker-compose.yml"
 for service in \
   postgres \
   evidra-api \
-  mcp-backend \
+  evidra-mcp \
   bridge \
   otel-collector \
   agentgateway \
@@ -136,17 +136,8 @@ grep -Fq 'KAGENT_URL=http://unused.local' "$compose_file" \
 grep -Fq 'curl -fsS http://127.0.0.1:8080/health >/dev/null' "$compose_file" \
   || fail "kagent should declare a local healthcheck"
 
-grep -Fq 'image: ghcr.io/rohitg00/kubectl-mcp-server:latest' "$compose_file" \
-  || fail "mcp-backend should use kubectl-mcp-server"
-
 grep -Fq 'KUBECONFIG=/kube/config' "$compose_file" \
-  || fail "mcp-backend should receive the shared kubeconfig path"
-
-grep -Fq -- '--transport' "$compose_file" \
-  || fail "mcp-backend should enable explicit transport selection"
-
-grep -Fq 'streamable-http' "$compose_file" \
-  || fail "mcp-backend should use streamable-http transport"
+  || fail "evidra-mcp should receive the shared kubeconfig path"
 
 grep -Fq './demo/manifests:/demo/manifests:ro' "$compose_file" \
   || fail "demo jobs should mount demo manifests"
@@ -155,7 +146,7 @@ grep -Fq 'artifacts:/artifacts' "$compose_file" \
   || fail "demo jobs should share an artifacts volume"
 
 grep -Fq 'kubeconfig:/kube' "$compose_file" \
-  || fail "mcp-backend should mount the shared kubeconfig volume"
+  || fail "evidra-mcp should mount the shared kubeconfig volume"
 
 grep -Fq 'DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}' "$compose_file" \
   || fail "demo jobs should receive the run label env"
@@ -187,11 +178,11 @@ grep -Fq './demo/scripts/verify_run.sh:/demo/scripts/verify_run.sh:ro' "$compose
 grep -Fq './demo/manifests:/demo/manifests:ro' "$compose_file" \
   || fail "demo jobs should mount demo manifests"
 
-grep -Fq 'http://mcp-backend:3005/mcp' demo/agentgateway/config.yaml \
+grep -Fq 'http://evidra-mcp:3001/mcp' demo/agentgateway/config.yaml \
   || fail "AgentGateway should target the in-stack MCP backend"
 
-grep -Fq 'kubectl-mcp-server' docs/guides/demo-compose.md \
-  || fail "demo guide should mention kubectl-mcp-server"
+grep -Fq 'evidra-mcp' docs/guides/demo-compose.md \
+  || fail "demo guide should mention evidra-mcp"
 
 grep -Fq 'docker build -t evidra-demo-runtime:local' demo/run.sh \
   || fail "wrapper should build the shared demo runtime image"
@@ -253,7 +244,7 @@ for pattern in \
   'kagent' \
   'kagent-runner' \
   'demo-verify' \
-  'mcp-backend' \
+  'evidra-mcp' \
   'bridge'
 do
   grep -Fq "$pattern" docs/guides/demo-compose.md \

@@ -5,9 +5,8 @@ short-lived jobs in sequence.
 
 The private stack now includes:
 
-- `mcp-backend` for an in-stack MCP target
-- `mcp-backend` now runs `kubectl-mcp-server` in `streamable-http` mode against
-  the shared kind kubeconfig
+- `evidra-mcp` for an in-stack MCP target providing run_command (kubectl
+  execution with auto-evidence) + prescribe/report
 - `bridge` using the local `evidra-agentgateway-bridge` build
 - `kagent`, a local `kagent-adk --local` service built from a checked-in demo
   agent project
@@ -32,7 +31,7 @@ Core command surface:
 ```bash
 docker compose -f docker-compose.yml up -d postgres evidra-api bridge otel-collector
 docker compose -f docker-compose.yml run --rm kind-bootstrap
-docker compose -f docker-compose.yml up -d mcp-backend agentgateway
+docker compose -f docker-compose.yml up -d agentgateway
 docker compose -f docker-compose.yml up -d kagent
 docker compose -f docker-compose.yml run --rm demo-seed
 docker compose -f docker-compose.yml run --rm kagent-runner
@@ -71,7 +70,7 @@ Current flow:
 5. When `BIFROST_BASE_URL` and `BIFROST_API_KEY` are set, the real `kagent`
    service path is used with `KAGENT_MODEL=qwen-plus`.
 6. Without Bifrost credentials, `kagent-runner` falls back to one harmless
-   `scale_deployment` call through the real `kubectl-mcp-server` backend so the
+   `scale_deployment` call through evidra-mcp's `run_command` tool so the
    rest of the private stack can still be smoke-tested locally.
 7. `demo-verify` checks the cluster state, confirms new evidence entries via
    `GET /v1/evidence/entries?session_id=`, fetches the scorecard via

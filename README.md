@@ -35,7 +35,7 @@ DEMO_RUN_MODE=both ./demo/run.sh
 ## Architecture
 
 ```
-kagent → AgentGateway → mcp-backend (kubectl) → Kind cluster
+kagent → AgentGateway → evidra-mcp → Kind cluster
               ↓ OTLP
          OTel Collector → bridge → evidra-api
 ```

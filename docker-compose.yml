@@ -29,6 +29,10 @@ services:
   evidra-mcp:
     image: ${EVIDRA_MCP_IMAGE:-ghcr.io/vitas/evidra-mcp:latest}
     command: ["-transport", "streamable-http", "-port", "3001", "-signing-mode", "optional", "-evidence-dir", "/tmp/evidence", "-url", "http://evidra-api:8080", "-api-key", "${EVIDRA_API_KEY:-dev-api-key}"]
+    environment:
+      - KUBECONFIG=/kube/config
+    volumes:
+      - kubeconfig:/kube
     depends_on:
       evidra-api:
         condition: service_started
@@ -37,14 +41,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-
-  mcp-backend:
-    image: ghcr.io/rohitg00/kubectl-mcp-server:latest
-    environment:
-      - KUBECONFIG=/kube/config
-    command: ["--transport", "streamable-http", "--port", "3005"]
-    volumes:
-      - kubeconfig:/kube
     networks:
       - default
       - kind
@@ -78,7 +74,7 @@ services:
     volumes:
       - ./demo/agentgateway/config.yaml:/etc/agentgateway/config.yaml:ro
     depends_on:
-      mcp-backend:
+      evidra-mcp:
         condition: service_started
       otel-collector:
         condition: service_started

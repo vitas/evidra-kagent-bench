@@ -107,11 +107,9 @@ run_direct_mcp_fallback() {
         id: 2,
         method: "tools/call",
         params: {
-          name: "scale_deployment",
+          name: "run_command",
           arguments: {
-            name: "web",
-            replicas: 1,
-            namespace: (if $case_name == "repair-loop-escalation" then "bench" else "demo" end)
+            command: ("kubectl get pods -n " + (if $case_name == "repair-loop-escalation" then "bench" else "demo" end))
           }
         }
       }
@@ -124,7 +122,7 @@ run_direct_mcp_fallback() {
   fi
   jq -e '.result' "$call_body_json" >/dev/null
   cp "$call_body_json" "$mode_artifacts_dir/tools_call_response.json"
-  echo "fallback runner executed scale_deployment via AgentGateway for $run_label"
+  echo "fallback runner executed run_command via AgentGateway for $run_label"
 }
 
 run_kagent_service() {

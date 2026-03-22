@@ -14,6 +14,7 @@ Evidra protocol (mandatory for every mutation):
 - AFTER execution: call report with the prescription_id and verdict
   (success if exit_code=0, failure otherwise)
 - Read-only commands (get, describe, logs) do NOT need prescribe/report
+- Use run_command to execute kubectl commands
 
 Operating method:
 - diagnose before you mutate

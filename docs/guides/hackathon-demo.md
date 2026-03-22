@@ -101,8 +101,8 @@ The tuned prompt produces a measurably higher reliability score.
                              │              │
                              ▼              ▼
                     ┌──────────────┐  ┌───────────┐
-                    │ mcp-backend  │  │  bridge    │ OTLP → Evidra ingest
-                    │ (kubectl)    │  │ (Go, :4317)│
+                    │ evidra-mcp   │  │  bridge    │ OTLP → Evidra ingest
+                    │ (run_command)│  │ (Go, :4317)│
                     └──────┬───────┘  └─────┬─────┘
                            │                │
                     kubectl exec    POST /v1/evidence/ingest/*
@@ -124,7 +124,7 @@ The tuned prompt produces a measurably higher reliability score.
 | **evidra-api** | REST API + embedded UI | `ghcr.io/vitas/evidra-api:latest` |
 | **bridge** | OTLP → Evidra ingest translator | `ghcr.io/vitas/evidra-agentgateway-bridge:latest` |
 | **agentgateway** | MCP HTTP gateway + trace emitter | `cr.agentgateway.dev/agentgateway:0.11.1` |
-| **mcp-backend** | Kubernetes MCP tools | `ghcr.io/rohitg00/kubectl-mcp-server:latest` |
+| **evidra-mcp** | run_command + prescribe/report + auto-evidence | `ghcr.io/vitas/evidra-mcp:latest` |
 | **kagent** | AI remediation agent | Built from `demo/kagent/Dockerfile` |
 | **kind-bootstrap** | Creates Kind K8s cluster | Built from `demo/kind/Dockerfile` |
 | **demo-seed** | Injects failure into cluster | `alpine/k8s:1.32.2` |
@@ -136,7 +136,7 @@ Plus two verification services (demo-verify, demo-compare) that read results.
 
 1. **kagent** sends a task to the agent via A2A JSON-RPC
 2. Agent calls MCP tools through **AgentGateway**
-3. AgentGateway forwards tool calls to **mcp-backend** (kubectl)
+3. AgentGateway forwards tool calls to **evidra-mcp** (run_command executes kubectl with auto-evidence)
 4. AgentGateway emits gRPC OTLP traces to **bridge**
 5. Bridge translates traces into Evidra `prescribe` + `report` ingest calls
 6. **evidra-api** stores evidence entries, computes signals, scores the session
@@ -231,7 +231,7 @@ DEMO_RUN_MODE=both ./demo/run.sh
 # Boot infrastructure
 docker compose -f docker-compose.yml up -d postgres evidra-api bridge
 docker compose -f docker-compose.yml run --rm kind-bootstrap
-docker compose -f docker-compose.yml up -d mcp-backend agentgateway
+docker compose -f docker-compose.yml up -d agentgateway
 
 # Run "before" scenario
 DEMO_RUN_LABEL=before docker compose -f docker-compose.yml run --rm demo-seed

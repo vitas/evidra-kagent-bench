@@ -18,8 +18,6 @@ for service in \
   postgres \
   evidra-api \
   evidra-mcp \
-  bridge \
-  otel-collector \
   agentgateway \
   kagent \
   kind-bootstrap \
@@ -34,9 +32,7 @@ done
 
 for path in \
   demo/agentgateway/config.yaml \
-  demo/otel-collector/config.yaml \
   demo/kind/kind-config.yaml \
-  demo/bridge/Dockerfile \
   demo/kagent/Dockerfile \
   demo/kagent/pyproject.toml \
   demo/kagent/demoagent/__init__.py \
@@ -106,17 +102,8 @@ grep -Eq '^[[:space:]]+postgres:' "$compose_file" \
 grep -Fq 'DATABASE_URL=postgres://evidra:evidra@postgres:5432/evidra?sslmode=disable' "$compose_file" \
   || fail "evidra-api should target postgres service"
 
-grep -Fq 'EVIDRA_BASE_URL=http://evidra-api:8080' "$compose_file" \
-  || fail "bridge should target evidra-api"
-
-grep -Fq 'EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}' "$compose_file" \
-  || fail "bridge should use demo api key env"
-
 grep -Fq './demo/agentgateway/config.yaml:/etc/agentgateway/config.yaml:ro' "$compose_file" \
   || fail "agentgateway should mount its config"
-
-grep -Eq 'image:.*evidra-agentgateway-bridge' "$compose_file" \
-  || fail "bridge should reference the bridge image"
 
 grep -Fq 'image: evidra-demo-runtime:local' "$compose_file" \
   || fail "demo jobs should use the shared demo runtime image"
@@ -244,8 +231,7 @@ for pattern in \
   'kagent' \
   'kagent-runner' \
   'demo-verify' \
-  'evidra-mcp' \
-  'bridge'
+  'evidra-mcp'
 do
   grep -Fq "$pattern" docs/guides/demo-compose.md \
     || fail "demo guide should mention $pattern"

@@ -7,7 +7,6 @@ The private stack now includes:
 
 - `evidra-mcp` for an in-stack MCP target providing run_command + collect_diagnostics
   (kubectl execution with auto-evidence) + prescribe_smart/report
-- `bridge` using the local `evidra-agentgateway-bridge` build
 - `kagent`, a local `kagent-adk --local` service built from a checked-in demo
   agent project
 - a mode-aware `kagent-runner` that prefers the real `kagent` service when
@@ -29,7 +28,7 @@ local development database.
 Core command surface:
 
 ```bash
-docker compose -f docker-compose.yml up -d postgres evidra-api bridge otel-collector
+docker compose -f docker-compose.yml up -d postgres evidra-api
 docker compose -f docker-compose.yml run --rm kind-bootstrap
 docker compose -f docker-compose.yml up -d agentgateway
 docker compose -f docker-compose.yml up -d kagent

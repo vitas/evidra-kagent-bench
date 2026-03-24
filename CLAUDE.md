@@ -22,17 +22,15 @@ DEMO_RUN_MODE=both ./demo/run.sh
 
 ```
 kagent → AgentGateway → evidra-mcp → Kind cluster
-              ↓ OTLP
-         OTel Collector → bridge → evidra-api (evidence + scoring)
+                              ↓ forward evidence
+                         evidra-api → postgres
 ```
 
 ## Services (docker-compose.yml)
 
 - **postgres** — Evidra database
 - **evidra-api** — Evidra API (pre-built image from ghcr.io)
-- **bridge** — OTLP→Evidra ingest translator (pre-built image)
-- **otel-collector** — gRPC→HTTP OTLP conversion
-- **agentgateway** — MCP HTTP gateway + trace emitter
+- **agentgateway** — MCP HTTP gateway
 - **evidra-mcp** — MCP server providing run_command + collect_diagnostics + prescribe_smart/report
 - **kagent** — AI remediation agent (Google ADK + LiteLLM)
 - **kind-bootstrap** — Creates Kind K8s cluster
@@ -50,7 +48,6 @@ kagent → AgentGateway → evidra-mcp → Kind cluster
 
 - `EVIDRA_API_KEY` — Evidra API auth (default: `dev-api-key`)
 - `EVIDRA_API_IMAGE` — Evidra API image (default: `ghcr.io/vitas/evidra-api:latest`)
-- `EVIDRA_BRIDGE_IMAGE` — Bridge image (default: `ghcr.io/vitas/evidra-agentgateway-bridge:latest`)
 - `DEMO_CASE` — Scenario (default: `broken-deployment`)
 - `DEMO_RUN_MODE` — `before`, `after`, or `both`
 - `KAGENT_MODEL` — LLM model name
@@ -65,8 +62,8 @@ bash tests/test_demo.sh
 
 ## Evidra APIs Used
 
-- `POST /v1/evidence/ingest/prescribe` — Record intended mutation
-- `POST /v1/evidence/ingest/report` — Record outcome
+- `POST /v1/evidence/ingest/prescribe` — Record intended mutation (forwarded by evidra-mcp)
+- `POST /v1/evidence/ingest/report` — Record outcome (forwarded by evidra-mcp)
 - `GET /v1/evidence/entries?session_id=` — Query evidence
 - `GET /v1/evidence/scorecard` — Reliability score
 - `POST /v1/bench/runs` — Submit benchmark result

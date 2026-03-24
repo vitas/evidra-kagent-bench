@@ -1,7 +1,3 @@
-config:
-  tracing:
-    otlpEndpoint: http://otel-collector:4317
-    randomSampling: true
 binds:
   - port: 3000
     listeners:

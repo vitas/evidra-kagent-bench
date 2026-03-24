@@ -48,7 +48,7 @@ spans into a different database.
 A Kind Kubernetes cluster has a broken deployment. An AI agent (kagent) is
 tasked with diagnosing and fixing it. The agent uses MCP tools through
 AgentGateway to interact with the cluster. Evidra observes every tool call
-through AgentGateway's OpenTelemetry traces.
+through evidra-mcp's auto-evidence recording.
 
 ### Act 2: Before — Basic Prompt
 
@@ -94,21 +94,20 @@ The tuned prompt produces a measurably higher reliability score.
                                 ▼
                      ┌────────────────────┐
                      │   AgentGateway     │ MCP HTTP gateway
-                     │   (port 23000)     │ routes tool calls + emits traces
+                     │   (port 23000)     │ routes tool calls
                      └───────┬────────────┘
-                             │              │
-                    MCP tool calls    gRPC OTLP traces
-                             │              │
-                             ▼              ▼
-                    ┌──────────────┐  ┌───────────┐
-                    │ evidra-mcp   │  │  bridge    │ OTLP → Evidra ingest
-                    │(run_command +│  │ (Go, :4317)│
-                    │ diagnostics) │
-                    └──────┬───────┘  └─────┬─────┘
-                           │                │
-                    kubectl exec    POST /v1/evidence/ingest/*
-                           │                │
-                           ▼                ▼
+                             │
+                    MCP tool calls
+                             │
+                             ▼
+                    ┌──────────────┐
+                    │ evidra-mcp   │ run_command + diagnostics
+                    │ auto-evidence│ + prescribe_smart/report
+                    └──────┬───┬──┘
+                           │   │
+                 kubectl exec  forward evidence
+                           │   │
+                           ▼   ▼
                     ┌────────────┐   ┌──────────────┐
                     │ Kind cluster│   │  evidra-api  │ evidence store + analytics
                     │ (broken k8s)│   │ (port 28080) │
@@ -117,14 +116,13 @@ The tuned prompt produces a measurably higher reliability score.
                                         PostgreSQL
 ```
 
-### Services (9 total)
+### Services (7 total)
 
 | Service | Role | Image |
 |---------|------|-------|
 | **postgres** | Evidence database | `postgres:17-alpine` |
 | **evidra-api** | REST API + embedded UI | `ghcr.io/vitas/evidra-api:latest` |
-| **bridge** | OTLP → Evidra ingest translator | `ghcr.io/vitas/evidra-agentgateway-bridge:latest` |
-| **agentgateway** | MCP HTTP gateway + trace emitter | `cr.agentgateway.dev/agentgateway:0.11.1` |
+| **agentgateway** | MCP HTTP gateway | `cr.agentgateway.dev/agentgateway:0.11.1` |
 | **evidra-mcp** | run_command + collect_diagnostics + prescribe_smart/report + auto-evidence | `ghcr.io/vitas/evidra-mcp:latest` |
 | **kagent** | AI remediation agent | Built from `demo/kagent/Dockerfile` |
 | **kind-bootstrap** | Creates Kind K8s cluster | Built from `demo/kind/Dockerfile` |
@@ -138,16 +136,15 @@ Plus two verification services (demo-verify, demo-compare) that read results.
 1. **kagent** sends a task to the agent via A2A JSON-RPC
 2. Agent calls MCP tools through **AgentGateway**
 3. AgentGateway forwards tool calls to **evidra-mcp** (collect_diagnostics for overview, run_command executes kubectl with auto-evidence)
-4. AgentGateway emits gRPC OTLP traces to **bridge**
-5. Bridge translates traces into Evidra `prescribe` + `report` ingest calls
-6. **evidra-api** stores evidence entries, computes signals, scores the session
+4. **evidra-mcp** records evidence via auto-evidence and forwards prescribe/report entries to **evidra-api**
+5. **evidra-api** stores evidence entries, computes signals, scores the session
 
 ### Evidra APIs Used
 
 | Endpoint | Purpose |
 |----------|---------|
-| `POST /v1/evidence/ingest/prescribe` | Record intended mutation (called by bridge) |
-| `POST /v1/evidence/ingest/report` | Record mutation outcome (called by bridge) |
+| `POST /v1/evidence/ingest/prescribe` | Record intended mutation (forwarded by evidra-mcp) |
+| `POST /v1/evidence/ingest/report` | Record mutation outcome (forwarded by evidra-mcp) |
 | `GET /v1/evidence/entries?session_id=` | Query evidence scoped to agent session |
 | `GET /v1/evidence/scorecard` | Compute reliability score + signal summary |
 | `POST /v1/bench/runs` | Submit benchmark result with scorecard metadata |
@@ -222,7 +219,7 @@ DEMO_RUN_MODE=both ./demo/run.sh
 1. **kind-bootstrap** creates a Kind cluster (or reuses existing)
 2. **demo-seed** deploys the baseline, then breaks it
 3. **kagent** starts, receives the task, calls MCP tools
-4. AgentGateway records traces → bridge → Evidra
+4. evidra-mcp records auto-evidence and forwards to evidra-api
 5. **demo-verify** checks K8s outcome, fetches scorecard, submits bench run
 6. Steps 2-5 repeat for the second prompt
 7. **demo-compare** calls `GET /v1/bench/compare/runs` and prints the delta
@@ -231,7 +228,7 @@ DEMO_RUN_MODE=both ./demo/run.sh
 
 ```bash
 # Boot infrastructure
-docker compose -f docker-compose.yml up -d postgres evidra-api bridge
+docker compose -f docker-compose.yml up -d postgres evidra-api
 docker compose -f docker-compose.yml run --rm kind-bootstrap
 docker compose -f docker-compose.yml up -d agentgateway
 
@@ -269,8 +266,8 @@ docker compose -f docker-compose.yml run --rm demo-compare
 
 If `BIFROST_BASE_URL` is not set, the runner falls back to a single
 `scale_deployment` MCP call through AgentGateway. This exercises the full
-evidence pipeline (bridge → Evidra) without needing an LLM, but produces
-minimal signal data. Useful for smoke-testing the stack.
+evidence pipeline (evidra-mcp auto-evidence → evidra-api) without needing
+an LLM, but produces minimal signal data. Useful for smoke-testing the stack.
 
 ## What Evidra Detects
 

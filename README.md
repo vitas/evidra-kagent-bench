@@ -36,8 +36,8 @@ DEMO_RUN_MODE=both ./demo/run.sh
 
 ```
 kagent → AgentGateway → evidra-mcp → Kind cluster
-              ↓ OTLP
-         OTel Collector → bridge → evidra-api
+                              ↓ forward evidence
+                         evidra-api → postgres
 ```
 
 ## Prerequisites

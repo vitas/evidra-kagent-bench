@@ -45,25 +45,6 @@ services:
       - default
       - kind
 
-  bridge:
-    image: ${EVIDRA_BRIDGE_IMAGE:-ghcr.io/vitas/evidra-agentgateway-bridge:latest}
-    environment:
-      - EVIDRA_BASE_URL=http://evidra-api:8080
-      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
-      - EVIDRA_BRIDGE_LISTEN_ADDR=:4318
-    depends_on:
-      evidra-api:
-        condition: service_started
-
-  otel-collector:
-    image: otel/opentelemetry-collector:0.121.0
-    command: ["--config=/etc/otelcol/config.yaml"]
-    volumes:
-      - ./demo/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
-    depends_on:
-      bridge:
-        condition: service_started
-
   agentgateway:
     image: cr.agentgateway.dev/agentgateway:0.11.1
     command: ["--file", "/etc/agentgateway/config.yaml"]
@@ -75,8 +56,6 @@ services:
       - ./demo/agentgateway/config.yaml:/etc/agentgateway/config.yaml:ro
     depends_on:
       evidra-mcp:
-        condition: service_started
-      otel-collector:
         condition: service_started
     networks:
       - default

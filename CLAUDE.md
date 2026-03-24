@@ -10,8 +10,8 @@ evidra-kagent-bench — benchmark harness for evaluating AI infrastructure agent
 
 ```bash
 # Set LLM provider
-export BIFROST_BASE_URL=https://api.groq.com/openai/v1
-export BIFROST_API_KEY=your-key
+export LLM_BASE_URL=https://api.groq.com/openai/v1
+export LLM_API_KEY=your-key
 export KAGENT_MODEL=llama-3.3-70b-versatile
 
 # Run both modes (before/after prompt comparison)
@@ -54,8 +54,8 @@ kagent → AgentGateway → evidra-mcp → Kind cluster
 - `DEMO_CASE` — Scenario (default: `broken-deployment`)
 - `DEMO_RUN_MODE` — `before`, `after`, or `both`
 - `KAGENT_MODEL` — LLM model name
-- `BIFROST_BASE_URL` — OpenAI-compatible API URL
-- `BIFROST_API_KEY` — LLM API key
+- `LLM_BASE_URL` — OpenAI-compatible API URL
+- `LLM_API_KEY` — LLM API key
 
 ## Tests
 

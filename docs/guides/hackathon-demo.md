@@ -206,8 +206,8 @@ mutations, more verification steps, and a higher Evidra reliability score.
 
 ```bash
 # Set your LLM provider
-export BIFROST_BASE_URL=https://api.groq.com/openai/v1
-export BIFROST_API_KEY=your-key
+export LLM_BASE_URL=https://api.groq.com/openai/v1
+export LLM_API_KEY=your-key
 export KAGENT_MODEL=llama-3.3-70b-versatile
 
 # Run both modes
@@ -256,15 +256,15 @@ docker compose -f docker-compose.yml run --rm demo-compare
 | `DEMO_CASE` | `broken-deployment` | Scenario to run |
 | `DEMO_RUN_MODE` | `before` | `before`, `after`, or `both` |
 | `KAGENT_MODEL` | `qwen-plus` | LLM model name |
-| `BIFROST_BASE_URL` | (empty) | OpenAI-compatible API base URL |
-| `BIFROST_API_KEY` | (empty) | LLM API key |
+| `LLM_BASE_URL` | (empty) | OpenAI-compatible API base URL |
+| `LLM_API_KEY` | (empty) | LLM API key |
 | `DEMO_EVIDRA_API_PORT` | `28080` | Host port for Evidra API |
 | `DEMO_AGENTGATEWAY_PORT` | `23000` | Host port for AgentGateway |
 | `DEMO_CLUSTER_NAME` | `evidra-demo` | Kind cluster name |
 
 ### Without an LLM
 
-If `BIFROST_BASE_URL` is not set, the runner falls back to a read-only
+If `LLM_BASE_URL` is not set, the runner falls back to a read-only
 `run_command` MCP call (`kubectl get pods`) through AgentGateway. This
 exercises the full evidence pipeline (evidra-mcp auto-evidence → evidra-api)
 without needing an LLM, but produces minimal signal data. Useful for

@@ -11,8 +11,8 @@ agent prompts.
 
 ```bash
 # Set your LLM provider
-export BIFROST_BASE_URL=https://api.groq.com/openai/v1
-export BIFROST_API_KEY=your-key
+export LLM_BASE_URL=https://api.groq.com/openai/v1
+export LLM_API_KEY=your-key
 export KAGENT_MODEL=llama-3.3-70b-versatile
 
 # Run before/after comparison

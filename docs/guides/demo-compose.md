@@ -10,7 +10,7 @@ The private stack now includes:
 - `kagent`, a local `kagent-adk --local` service built from a checked-in demo
   agent project
 - a mode-aware `kagent-runner` that prefers the real `kagent` service when
-  Bifrost credentials are configured and otherwise falls back to one
+  LLM credentials are configured and otherwise falls back to one
   deterministic MCP `tools/call` smoke step
 - local demo manifests for both `broken-deployment` and `repair-loop-escalation`
 - paired prompt assets:
@@ -48,10 +48,10 @@ Optional:
 
 - `KAGENT_MODEL`
   defaults to `qwen-plus`
-- `BIFROST_BASE_URL`
-  OpenAI-compatible base URL for the released `kagent` local runner
-- `BIFROST_API_KEY`
-  bearer/API key for that Bifrost endpoint
+- `LLM_BASE_URL`
+  OpenAI-compatible base URL for the LLM provider
+- `LLM_API_KEY`
+  API key for the LLM provider
 
 Current flow:
 
@@ -66,9 +66,9 @@ Current flow:
    directory, waits for `http://kagent:8080/health`, reads
    `/.well-known/agent-card.json`, and sends a JSON-RPC `message/send` request
    to the service root.
-5. When `BIFROST_BASE_URL` and `BIFROST_API_KEY` are set, the real `kagent`
+5. When `LLM_BASE_URL` and `LLM_API_KEY` are set, the real `kagent`
    service path is used with `KAGENT_MODEL=qwen-plus`.
-6. Without Bifrost credentials, `kagent-runner` falls back to a read-only
+6. Without LLM credentials, `kagent-runner` falls back to a read-only
    `run_command` call (`kubectl get pods`) through evidra-mcp so the rest of
    the private stack can still be smoke-tested locally.
 7. `demo-verify` checks the cluster state, confirms new evidence entries via

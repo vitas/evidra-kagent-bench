@@ -72,10 +72,10 @@ services:
       - KAGENT_MCP_URL=http://agentgateway:3000/mcp/http
       - KAGENT_MODEL=${KAGENT_MODEL:-qwen-plus}
       - KAGENT_MODEL_PROVIDER=${KAGENT_MODEL_PROVIDER:-openai}
-      - OPENAI_BASE_URL=${BIFROST_BASE_URL:-}
-      - OPENAI_API_KEY=${BIFROST_API_KEY:-}
-      - GROQ_API_KEY=${BIFROST_API_KEY:-}
-      - DEEPSEEK_API_KEY=${BIFROST_API_KEY:-}
+      - OPENAI_BASE_URL=${LLM_BASE_URL:-}
+      - OPENAI_API_KEY=${LLM_API_KEY:-}
+      - GROQ_API_KEY=${LLM_API_KEY:-}
+      - DEEPSEEK_API_KEY=${LLM_API_KEY:-}
       - KAGENT_TOOL_ALLOW_LIST=${KAGENT_TOOL_ALLOW_LIST:-}
       - KAGENT_SYSTEM_PROMPT_FILE=/demo/prompts/kagent-${DEMO_RUN_LABEL:-before}.md
     volumes:
@@ -132,8 +132,8 @@ services:
       - DEMO_CASE=${DEMO_CASE:-broken-deployment}
       - KAGENT_RUNNER_COMMAND=${KAGENT_RUNNER_COMMAND:-}
       - KAGENT_MODEL=${KAGENT_MODEL:-qwen-plus}
-      - BIFROST_BASE_URL=${BIFROST_BASE_URL:-}
-      - BIFROST_API_KEY=${BIFROST_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
       - KAGENT_PROMPTS_DIR=/demo/prompts
       - KAGENT_SERVICE_URL=http://kagent:8080
       - AGENTGATEWAY_BASE_URL=http://host.docker.internal:${DEMO_AGENTGATEWAY_PORT:-23000}

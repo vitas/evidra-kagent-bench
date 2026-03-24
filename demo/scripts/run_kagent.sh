@@ -181,13 +181,13 @@ run_kagent_service() {
 if [ -n "${KAGENT_RUNNER_COMMAND:-}" ]; then
   export KAGENT_SYSTEM_PROMPT_FILE="$selected_prompt"
   export KAGENT_MODEL="${KAGENT_MODEL:-qwen-plus}"
-  export OPENAI_BASE_URL="${BIFROST_BASE_URL:-}"
-  export OPENAI_API_KEY="${BIFROST_API_KEY:-}"
+  export OPENAI_BASE_URL="${LLM_BASE_URL:-}"
+  export OPENAI_API_KEY="${LLM_API_KEY:-}"
   exec /bin/sh -lc "$KAGENT_RUNNER_COMMAND"
 fi
 
 if [ "$run_mode" = "auto" ]; then
-  if [ -n "${BIFROST_BASE_URL:-}" ] && [ -n "${BIFROST_API_KEY:-}" ]; then
+  if [ -n "${LLM_BASE_URL:-}" ] && [ -n "${LLM_API_KEY:-}" ]; then
     run_mode="service"
   else
     run_mode="direct-mcp"

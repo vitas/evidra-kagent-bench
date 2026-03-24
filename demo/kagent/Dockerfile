@@ -14,7 +14,10 @@ WORKDIR /opt
 RUN git clone --depth 1 --branch "${KAGENT_GIT_REF}" https://github.com/kagent-dev/kagent.git /opt/kagent-src
 
 WORKDIR /opt/kagent-src/python
-RUN uv sync --package kagent-adk
+# Pin litellm to safe version — v1.82.7+ is a supply chain attack (credential stealer).
+# See: https://github.com/BerriAI/litellm/issues/24512
+RUN uv sync --package kagent-adk && \
+    uv pip install 'litellm<1.82.7'
 
 ENV PATH="/opt/kagent-src/python/.venv/bin:${PATH}"
 

@@ -1,5 +1,22 @@
 # Known Issues
 
+## CRITICAL: LiteLLM Supply Chain Attack (v1.82.7+)
+
+**Status:** Active threat — do NOT use litellm >= 1.82.7
+
+LiteLLM v1.82.8 on PyPI contains a credential-stealing payload that
+exfiltrates SSH keys, cloud creds, K8s configs, and API keys. The
+maintainer account was compromised via the Trivy/KICS supply chain
+attack chain.
+
+**Mitigation:** The Dockerfile pins `litellm<1.82.7`. Do not remove
+this pin until BerriAI confirms the compromised versions are yanked
+and the maintainer account is secured.
+
+**References:**
+- [BerriAI/litellm#24512](https://github.com/BerriAI/litellm/issues/24512)
+- [Supply chain analysis](https://futuresearch.ai/blog/litellm-pypi-supply-chain-attack/)
+
 ## ADK Tool Calling Fails with Groq Llama
 
 **Status:** Open — filed as [kagent-dev/kagent#1532](https://github.com/kagent-dev/kagent/issues/1532)

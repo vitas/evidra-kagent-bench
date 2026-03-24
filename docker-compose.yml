@@ -96,7 +96,7 @@ services:
       - OPENAI_BASE_URL=${BIFROST_BASE_URL:-}
       - OPENAI_API_KEY=${BIFROST_API_KEY:-}
       - GROQ_API_KEY=${BIFROST_API_KEY:-}
-      - LITELLM_LOG=DEBUG
+      - DEEPSEEK_API_KEY=${BIFROST_API_KEY:-}
       - KAGENT_SYSTEM_PROMPT_FILE=/demo/prompts/kagent-${DEMO_RUN_LABEL:-before}.md
     volumes:
       - ./demo/prompts:/demo/prompts:ro

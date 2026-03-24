@@ -97,6 +97,7 @@ services:
       - OPENAI_API_KEY=${BIFROST_API_KEY:-}
       - GROQ_API_KEY=${BIFROST_API_KEY:-}
       - DEEPSEEK_API_KEY=${BIFROST_API_KEY:-}
+      - KAGENT_TOOL_ALLOW_LIST=${KAGENT_TOOL_ALLOW_LIST:-}
       - KAGENT_SYSTEM_PROMPT_FILE=/demo/prompts/kagent-${DEMO_RUN_LABEL:-before}.md
     volumes:
       - ./demo/prompts:/demo/prompts:ro

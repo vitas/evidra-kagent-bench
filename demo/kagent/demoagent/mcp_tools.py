@@ -4,12 +4,11 @@ from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StreamableHTTPConn
 
 # Only expose tools the demo agent actually needs.
 # Keeps the tool list small -> fewer tokens per turn, cheaper and faster.
+# Default: just DevOps tools. The "after" run adds prescribe_smart/report
+# via KAGENT_TOOL_ALLOW_LIST env var override.
 DEMO_TOOL_ALLOW_LIST = {
     "run_command",
     "collect_diagnostics",
-    "prescribe_smart",
-    "report",
-    "get_event",
 }
 
 

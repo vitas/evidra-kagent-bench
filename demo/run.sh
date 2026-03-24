@@ -14,8 +14,14 @@ run_mode="${DEMO_RUN_MODE:-before}"
 run_single_mode() {
   local mode="$1"
 
+  # "after" run gets prescribe_smart + report tools; "before" uses defaults only
+  local tool_list=""
+  if [ "$mode" = "after" ]; then
+    tool_list="run_command,collect_diagnostics,prescribe_smart,report,get_event"
+  fi
+
   DEMO_RUN_LABEL="$mode" "${compose[@]}" run --rm --no-deps demo-seed
-  DEMO_RUN_LABEL="$mode" "${compose[@]}" up -d --force-recreate kagent
+  DEMO_RUN_LABEL="$mode" KAGENT_TOOL_ALLOW_LIST="$tool_list" "${compose[@]}" up -d --force-recreate kagent
   DEMO_RUN_LABEL="$mode" "${compose[@]}" run --rm --no-deps kagent-runner
   DEMO_RUN_LABEL="$mode" "${compose[@]}" run --rm --no-deps demo-verify
 }

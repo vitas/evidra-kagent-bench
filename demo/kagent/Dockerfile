@@ -15,9 +15,10 @@ RUN git clone --depth 1 --branch "${KAGENT_GIT_REF}" https://github.com/kagent-d
 
 WORKDIR /opt/kagent-src/python
 # Pin litellm to safe version — v1.82.7+ is a supply chain attack (credential stealer).
-# See: https://github.com/BerriAI/litellm/issues/24512
+# Use patched ADK fork that fixes Groq tool calling (google/adk-python#4985).
 RUN uv sync --package kagent-adk && \
-    uv pip install 'litellm<1.82.7'
+    uv pip install 'litellm<1.82.7' && \
+    uv pip install 'google-adk @ git+https://github.com/vitas/adk-python.git@fix/groq-tool-calling'
 
 ENV PATH="/opt/kagent-src/python/.venv/bin:${PATH}"
 

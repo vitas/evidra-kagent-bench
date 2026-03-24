@@ -56,7 +56,7 @@ Optional:
 Current flow:
 
 1. `kind-bootstrap` creates or reuses the demo kind cluster and exports a shared kubeconfig.
-2. `demo-seed` applies the curated broken-deployment case into the cluster.
+2. `demo-seed` applies the scenario specified by `DEMO_CASE` into the cluster.
 3. `kagent` starts as a local `kagent-adk --local` A2A service and reads
    `kagent-before.md` or `kagent-after.md` from `demo/prompts/` through
    `KAGENT_SYSTEM_PROMPT_FILE`. In practice the local service can take roughly
@@ -68,9 +68,9 @@ Current flow:
    to the service root.
 5. When `BIFROST_BASE_URL` and `BIFROST_API_KEY` are set, the real `kagent`
    service path is used with `KAGENT_MODEL=qwen-plus`.
-6. Without Bifrost credentials, `kagent-runner` falls back to one harmless
-   `scale_deployment` call through evidra-mcp's `run_command` tool so the
-   rest of the private stack can still be smoke-tested locally.
+6. Without Bifrost credentials, `kagent-runner` falls back to a read-only
+   `run_command` call (`kubectl get pods`) through evidra-mcp so the rest of
+   the private stack can still be smoke-tested locally.
 7. `demo-verify` checks the cluster state, confirms new evidence entries via
    `GET /v1/evidence/entries?session_id=`, fetches the scorecard via
    `GET /v1/evidence/scorecard`, and submits a bench run to

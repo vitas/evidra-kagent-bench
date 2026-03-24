@@ -116,7 +116,7 @@ The tuned prompt produces a measurably higher reliability score.
                                         PostgreSQL
 ```
 
-### Services (7 total)
+### Services (10 total)
 
 | Service | Role | Image |
 |---------|------|-------|
@@ -264,10 +264,11 @@ docker compose -f docker-compose.yml run --rm demo-compare
 
 ### Without an LLM
 
-If `BIFROST_BASE_URL` is not set, the runner falls back to a single
-`scale_deployment` MCP call through AgentGateway. This exercises the full
-evidence pipeline (evidra-mcp auto-evidence → evidra-api) without needing
-an LLM, but produces minimal signal data. Useful for smoke-testing the stack.
+If `BIFROST_BASE_URL` is not set, the runner falls back to a read-only
+`run_command` MCP call (`kubectl get pods`) through AgentGateway. This
+exercises the full evidence pipeline (evidra-mcp auto-evidence → evidra-api)
+without needing an LLM, but produces minimal signal data. Useful for
+smoke-testing the stack.
 
 ## What Evidra Detects
 

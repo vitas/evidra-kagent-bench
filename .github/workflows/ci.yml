@@ -20,7 +20,7 @@ jobs:
 
       - name: Check scripts are executable
         run: |
-          for script in demo/run.sh demo/scripts/*.sh; do
+          for script in demo/run.sh demo/scripts/*.sh tests/test_demo.sh; do
             test -x "$script" || { echo "FAIL: $script not executable"; exit 1; }
           done
 

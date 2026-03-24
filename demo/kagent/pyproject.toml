@@ -2,7 +2,6 @@
 name = "demoagent"
 version = "0.1.0"
 description = "Kagent agent for Evidra benchmark harness"
-dependencies = [
-  "google-adk==1.25.1",
-]
+# google-adk installed from patched fork in Dockerfile (vitas/adk-python@fix/groq-tool-calling)
+dependencies = []
 requires-python = ">=3.13"

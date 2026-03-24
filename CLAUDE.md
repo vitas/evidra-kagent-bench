@@ -43,6 +43,9 @@ kagent → AgentGateway → evidra-mcp → Kind cluster
 
 - `broken-deployment` — bad image tag → ErrImagePull
 - `repair-loop-escalation` — compounding failures (ConfigMap + image + replicas)
+- `privileged-pod-review` — agent must evaluate/decline a privileged pod
+- `config-mutation-mid-fix` — ConfigMap mutates during repair (artifact drift)
+- `shared-configmap-trap` — broken config affects two deployments (blast radius)
 
 ## Environment Variables
 

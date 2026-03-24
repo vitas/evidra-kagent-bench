@@ -33,7 +33,7 @@ kagent → AgentGateway → evidra-mcp → Kind cluster
 - **bridge** — OTLP→Evidra ingest translator (pre-built image)
 - **otel-collector** — gRPC→HTTP OTLP conversion
 - **agentgateway** — MCP HTTP gateway + trace emitter
-- **evidra-mcp** — MCP server providing run_command (kubectl execution with auto-evidence) + prescribe/report
+- **evidra-mcp** — MCP server providing run_command + collect_diagnostics + prescribe_smart/report
 - **kagent** — AI remediation agent (Google ADK + LiteLLM)
 - **kind-bootstrap** — Creates Kind K8s cluster
 - **demo-seed** — Injects failure scenarios

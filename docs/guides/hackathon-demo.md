@@ -102,7 +102,8 @@ The tuned prompt produces a measurably higher reliability score.
                              ▼              ▼
                     ┌──────────────┐  ┌───────────┐
                     │ evidra-mcp   │  │  bridge    │ OTLP → Evidra ingest
-                    │ (run_command)│  │ (Go, :4317)│
+                    │(run_command +│  │ (Go, :4317)│
+                    │ diagnostics) │
                     └──────┬───────┘  └─────┬─────┘
                            │                │
                     kubectl exec    POST /v1/evidence/ingest/*
@@ -124,7 +125,7 @@ The tuned prompt produces a measurably higher reliability score.
 | **evidra-api** | REST API + embedded UI | `ghcr.io/vitas/evidra-api:latest` |
 | **bridge** | OTLP → Evidra ingest translator | `ghcr.io/vitas/evidra-agentgateway-bridge:latest` |
 | **agentgateway** | MCP HTTP gateway + trace emitter | `cr.agentgateway.dev/agentgateway:0.11.1` |
-| **evidra-mcp** | run_command + prescribe/report + auto-evidence | `ghcr.io/vitas/evidra-mcp:latest` |
+| **evidra-mcp** | run_command + collect_diagnostics + prescribe_smart/report + auto-evidence | `ghcr.io/vitas/evidra-mcp:latest` |
 | **kagent** | AI remediation agent | Built from `demo/kagent/Dockerfile` |
 | **kind-bootstrap** | Creates Kind K8s cluster | Built from `demo/kind/Dockerfile` |
 | **demo-seed** | Injects failure into cluster | `alpine/k8s:1.32.2` |
@@ -136,7 +137,7 @@ Plus two verification services (demo-verify, demo-compare) that read results.
 
 1. **kagent** sends a task to the agent via A2A JSON-RPC
 2. Agent calls MCP tools through **AgentGateway**
-3. AgentGateway forwards tool calls to **evidra-mcp** (run_command executes kubectl with auto-evidence)
+3. AgentGateway forwards tool calls to **evidra-mcp** (collect_diagnostics for overview, run_command executes kubectl with auto-evidence)
 4. AgentGateway emits gRPC OTLP traces to **bridge**
 5. Bridge translates traces into Evidra `prescribe` + `report` ingest calls
 6. **evidra-api** stores evidence entries, computes signals, scores the session
@@ -185,6 +186,7 @@ The demo's core comparison uses two prompt files:
 - Stop once you believe the issue is fixed
 
 **`kagent-after.md`** (tuned with Evidra skills):
+- Start with collect_diagnostics for a quick workload overview
 - Diagnose before you mutate
 - Capture current state before each change
 - Make the smallest change that addresses the observed cause

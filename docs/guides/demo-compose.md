@@ -5,8 +5,8 @@ short-lived jobs in sequence.
 
 The private stack now includes:
 
-- `evidra-mcp` for an in-stack MCP target providing run_command (kubectl
-  execution with auto-evidence) + prescribe/report
+- `evidra-mcp` for an in-stack MCP target providing run_command + collect_diagnostics
+  (kubectl execution with auto-evidence) + prescribe_smart/report
 - `bridge` using the local `evidra-agentgateway-bridge` build
 - `kagent`, a local `kagent-adk --local` service built from a checked-in demo
   agent project

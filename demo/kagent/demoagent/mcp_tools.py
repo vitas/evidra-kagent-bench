@@ -6,6 +6,10 @@ from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StreamableHTTPConn
 # Keeps the tool list small -> fewer tokens per turn, cheaper and faster.
 DEMO_TOOL_ALLOW_LIST = {
     "run_command",
+    "collect_diagnostics",
+    "prescribe_smart",
+    "report",
+    "get_event",
 }
 
 

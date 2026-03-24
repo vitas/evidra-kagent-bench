@@ -44,6 +44,24 @@ Agent(model=LiteLlm(model="groq/llama-3.3-70b-versatile"), tools=[MCPToolset(...
 - [LiteLLM #11001](https://github.com/BerriAI/litellm/issues/11001) — Groq tool calling format issues
 - Real fix belongs in [google/adk-python](https://github.com/google/adk-python), not kagent
 
+## prescribe_full Hidden by Default (Evidra v0.5.8)
+
+**Status:** By design
+
+**Impact:** The `prescribe_full` tool is no longer exposed by default in
+Evidra MCP v0.5.8. It requires the `--full-prescribe` flag to enable.
+
+**Root cause:** When `prescribe_full` is available, agents tend to
+generate full YAML artifacts for the `artifact_bytes` field and then
+attempt to parse the returned YAML prescription, leading to infinite
+YAML generation/parse loops. `prescribe_smart` avoids this by accepting
+structured fields (tool name, operation, target) instead of raw artifact
+bytes.
+
+**Action:** The demo tool allow list uses `prescribe_smart` only. Do not
+add `prescribe_full` to `DEMO_TOOL_ALLOW_LIST` unless you also pass
+`--full-prescribe` to evidra-mcp and have tested the agent with it.
+
 ## Groq Free Tier Rate Limits
 
 **Impact:** Groq's free tier has a 12K token-per-minute (TPM) limit.

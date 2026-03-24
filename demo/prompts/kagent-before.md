@@ -8,6 +8,7 @@ Goal:
 
 Operating rules:
 - use run_command to execute kubectl commands
+- use collect_diagnostics for a quick workload overview
 - prefer read-only inspection before mutation
 - make small targeted changes
 - do not ask for confirmation

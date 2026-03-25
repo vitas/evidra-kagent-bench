@@ -135,6 +135,20 @@ services:
       - default
       - kind
 
+  # Bench UI — dedicated certification/leaderboard viewer.
+  bench-ui:
+    image: ${BENCH_UI_IMAGE:-ghcr.io/samebits/evidra-bench-ui:latest}
+    build:
+      context: ${BENCH_UI_CONTEXT:-../evidra-stand/ui}
+      args:
+        VITE_EVIDRA_API_URL: http://localhost:${DEMO_EVIDRA_API_PORT:-28080}
+        VITE_EVIDRA_API_KEY: ${EVIDRA_API_KEY:-dev-api-key}
+    ports:
+      - "${DEMO_BENCH_UI_PORT:-28081}:80"
+    depends_on:
+      evidra-api:
+        condition: service_started
+
   # Kind cluster bootstrap — run once to create the cluster and export kubeconfig.
   kind-bootstrap:
     build:

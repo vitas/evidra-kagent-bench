@@ -47,6 +47,22 @@ services:
       - default
       - kind
 
+  agentgateway:
+    image: cr.agentgateway.dev/agentgateway:0.11.1
+    command: ["--file", "/etc/agentgateway/config.yaml"]
+    ports:
+      - "${DEMO_AGENTGATEWAY_PORT:-23000}:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./demo/agentgateway/config.yaml:/etc/agentgateway/config.yaml:ro
+    depends_on:
+      evidra-mcp:
+        condition: service_started
+    networks:
+      - default
+      - kind
+
   # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
   # Handles bootstrap → break → agent execution → verify → submit results.
   # Image published from evidra-infra-bench repo: ghcr.io/vitas/bench-cli
@@ -87,6 +103,38 @@ services:
       - default
       - kind
 
+  # kagent — Google ADK-based K8s remediation agent for before/after demo.
+  kagent:
+    build:
+      context: ./demo/kagent
+      dockerfile: Dockerfile
+    environment:
+      - KAGENT_URL=http://unused.local
+      - KAGENT_NAME=demoagent
+      - KAGENT_NAMESPACE=demo
+      - KAGENT_MCP_URL=http://agentgateway:3000/mcp/http
+      - KAGENT_MODEL=${KAGENT_MODEL:-deepseek-chat}
+      - KAGENT_MODEL_PROVIDER=${KAGENT_MODEL_PROVIDER:-openai}
+      - OPENAI_BASE_URL=${LLM_BASE_URL:-}
+      - OPENAI_API_KEY=${LLM_API_KEY:-}
+      - DEEPSEEK_API_KEY=${LLM_API_KEY:-}
+      - KAGENT_TOOL_ALLOW_LIST=${KAGENT_TOOL_ALLOW_LIST:-}
+      - KAGENT_SYSTEM_PROMPT_FILE=/demo/prompts/kagent-${DEMO_RUN_LABEL:-before}.md
+    volumes:
+      - ./demo/prompts:/demo/prompts:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    depends_on:
+      agentgateway:
+        condition: service_started
+    networks:
+      - default
+      - kind
+
   # Kind cluster bootstrap — run once to create the cluster and export kubeconfig.
   kind-bootstrap:
     build:
@@ -100,9 +148,101 @@ services:
       - ./demo/kind/kind-config.yaml:/demo/kind-config.yaml:ro
       - kubeconfig:/kube
 
+  # Script-based demo runners for before/after kagent comparison.
+  demo-seed:
+    image: evidra-demo-runtime:local
+    entrypoint: ["/bin/sh"]
+    command: ["/demo/scripts/seed_case.sh"]
+    environment:
+      - DEMO_CASE=${DEMO_CASE:-broken-deployment}
+      - KUBECONFIG=/kube/config
+      - DEMO_ARTIFACTS_DIR=/artifacts
+      - DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}
+    volumes:
+      - kubeconfig:/kube
+      - artifacts:/artifacts
+      - ./demo/scripts/seed_case.sh:/demo/scripts/seed_case.sh:ro
+      - ./demo/manifests:/demo/manifests:ro
+    networks:
+      - default
+      - kind
+
+  kagent-runner:
+    image: evidra-demo-runtime:local
+    entrypoint: ["/bin/sh"]
+    command: ["/demo/scripts/run_kagent.sh"]
+    environment:
+      - KUBECONFIG=/kube/config
+      - DEMO_CASE=${DEMO_CASE:-broken-deployment}
+      - KAGENT_MODEL=${KAGENT_MODEL:-deepseek-chat}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - KAGENT_SERVICE_URL=http://kagent:8080
+      - AGENTGATEWAY_BASE_URL=http://host.docker.internal:${DEMO_AGENTGATEWAY_PORT:-23000}
+      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_EVIDRA_API_PORT:-28080}
+      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
+      - DEMO_ARTIFACTS_DIR=/artifacts
+      - DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}
+    depends_on:
+      demo-seed:
+        condition: service_completed_successfully
+      kagent:
+        condition: service_started
+    volumes:
+      - kubeconfig:/kube
+      - artifacts:/artifacts
+      - ./demo/scripts/run_kagent.sh:/demo/scripts/run_kagent.sh:ro
+      - ./demo/prompts:/demo/prompts:ro
+    networks:
+      - default
+      - kind
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  demo-verify:
+    image: evidra-demo-runtime:local
+    entrypoint: ["/bin/sh"]
+    command: ["/demo/scripts/verify_run.sh"]
+    environment:
+      - KUBECONFIG=/kube/config
+      - DEMO_CASE=${DEMO_CASE:-broken-deployment}
+      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_EVIDRA_API_PORT:-28080}
+      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
+      - DEMO_ARTIFACTS_DIR=/artifacts
+      - DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}
+      - KAGENT_MODEL=${KAGENT_MODEL:-deepseek-chat}
+    depends_on:
+      kagent-runner:
+        condition: service_completed_successfully
+    volumes:
+      - kubeconfig:/kube
+      - artifacts:/artifacts
+      - ./demo/scripts/verify_run.sh:/demo/scripts/verify_run.sh:ro
+      - ./demo/manifests:/demo/manifests:ro
+    networks:
+      - default
+      - kind
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  demo-compare:
+    image: evidra-demo-runtime:local
+    entrypoint: ["/bin/sh"]
+    command: ["/demo/scripts/compare_runs.sh"]
+    environment:
+      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_EVIDRA_API_PORT:-28080}
+      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
+      - DEMO_ARTIFACTS_DIR=/artifacts
+    volumes:
+      - artifacts:/artifacts
+      - ./demo/scripts/compare_runs.sh:/demo/scripts/compare_runs.sh:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   pgdata:
   kubeconfig:
+  artifacts:
 
 networks:
   kind:

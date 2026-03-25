@@ -22,6 +22,8 @@ services:
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
       - EVIDRA_SIGNING_MODE=optional
       - LISTEN_ADDR=:8080
+      - EVIDRA_BENCH_SERVICE_URL=http://bench-cli:8090
+      - EVIDRA_SELF_URL=http://evidra-api:8080
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +59,46 @@ services:
     depends_on:
       evidra-mcp:
         condition: service_started
+    networks:
+      - default
+      - kind
+
+  # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
+  # Handles seed → break → agent execution → verify → submit results.
+  # Image published from evidra-infra-bench repo: ghcr.io/vitas/bench-cli
+  bench-cli:
+    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:latest}
+    environment:
+      - EVIDRA_URL=http://evidra-api:8080
+      - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
+      - BENCH_SERVICE_ADDR=:8090
+      - BENCH_DATABASE_URL=postgres://evidra:evidra@postgres:5432/evidra?sslmode=disable
+      - KUBECONFIG=/kube/config
+      - INFRA_BENCH_SCENARIOS_DIR=/scenarios
+      - INFRA_BENCH_PROVIDER=${BENCH_PROVIDER:-bifrost}
+      - INFRA_BENCH_MODEL=${KAGENT_MODEL:-deepseek-chat}
+      - INFRA_BENCH_MCP_SERVER=evidra-mcp --signing-mode optional -url http://evidra-api:8080 -api-key ${EVIDRA_API_KEY:-dev-api-key}
+      - INFRA_BENCH_CLUSTER_NAME=${DEMO_CLUSTER_NAME:-evidra-demo}
+      - INFRA_BENCH_REUSE_CLUSTER=true
+      # Bifrost provider — OpenAI-compatible API (DeepSeek, OpenRouter, etc.)
+      - INFRA_BENCH_BIFROST_URL=${LLM_BASE_URL:-https://api.deepseek.com/v1}
+      - EVIDRA_BIFROST_AUTH_BEARER=${LLM_API_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - kubeconfig:/kube
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      evidra-api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8090/healthz >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 30s
     networks:
       - default
       - kind

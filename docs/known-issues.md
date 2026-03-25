@@ -51,7 +51,7 @@ Agent(model=LiteLlm(model="groq/llama-3.3-70b-versatile"), tools=[MCPToolset(...
 **Workarounds under consideration:**
 1. Use a different model provider (Claude, OpenAI) — ADK may handle
    their tool calling format better
-2. Bypass kagent/ADK and use a custom agent loop (like evidra-stand's
+2. Bypass kagent/ADK and use a custom agent loop (like evidra-bench's
    BifrostProvider) that calls LiteLLM directly
 3. Monkey-patch ADK's tool conversion in the Dockerfile
 4. Wait for fix upstream (ADK or kagent)

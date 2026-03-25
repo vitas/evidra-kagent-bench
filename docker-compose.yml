@@ -119,7 +119,7 @@ services:
   bench-ui:
     image: ${BENCH_UI_IMAGE:-ghcr.io/samebits/evidra-bench-ui:latest}
     build:
-      context: ${BENCH_UI_CONTEXT:-../evidra-stand/ui}
+      context: ${BENCH_UI_CONTEXT:-../evidra-bench/ui}
       args:
         VITE_EVIDRA_API_URL: http://localhost:${DEMO_PORT:-28080}
         VITE_EVIDRA_API_KEY: ${EVIDRA_API_KEY:-dev-api-key}

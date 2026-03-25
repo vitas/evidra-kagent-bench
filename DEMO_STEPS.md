@@ -4,108 +4,123 @@
 
 - Docker with Compose v2
 - DeepSeek API key (or any OpenAI-compatible provider)
-- `.env` file with credentials (see `.env.example`)
+- `.env` file with credentials
+
+```bash
+cat > .env <<EOF
+EVIDRA_API_KEY=dev-api-key
+DEMO_CLUSTER_NAME=evidra-demo
+KAGENT_MODEL=deepseek-chat
+LLM_BASE_URL=https://api.deepseek.com/v1
+LLM_API_KEY=your-key
+EOF
+```
 
 ## Setup (one-time)
 
 ```bash
-# Build images
-docker build -t evidra-demo-runtime:local -f demo/runtime/Dockerfile .
+# Build local images
 docker compose build kind-bootstrap kagent
+docker build -t evidra-demo-runtime:local -f demo/runtime/Dockerfile .
 
-# Tag evidra images (if built locally)
-docker tag evidra-mcp:local ghcr.io/vitas/evidra-mcp:latest
-docker tag evidra-api:local ghcr.io/vitas/evidra-api:latest
-```
-
-## Run the Demo
-
-### Step 1: Boot infrastructure
-
-```bash
-docker compose up -d postgres evidra-api evidra-mcp
+# Create Kind cluster
 docker compose run --rm kind-bootstrap
-docker compose up -d agentgateway
 ```
 
-Wait 5 seconds for services to settle.
-
-### Step 2: Seed the scenario
+## Boot the Stack
 
 ```bash
-DEMO_CASE=broken-deployment DEMO_RUN_LABEL=before \
-  docker compose run --rm --no-deps demo-seed
+docker compose up -d postgres evidra-api evidra-mcp bench-cli bench-ui traefik agentgateway
 ```
 
-This deploys a healthy nginx, then breaks it with a bad image tag.
+Wait 10 seconds for bench-cli to sync scenarios.
 
-### Step 3: Start kagent
+Open **http://localhost:28080** — single URL for everything.
 
-```bash
-DEMO_RUN_LABEL=before docker compose up -d --force-recreate kagent
-```
+## Demo Mode A: Bench Trigger (UI)
 
-Wait ~50 seconds for kagent to become healthy (ADK startup).
+### Step 1: Open bench dashboard
 
-### Step 4: Run the agent
+Navigate to `http://localhost:28080/bench`
 
-```bash
-DEMO_RUN_LABEL=before DEMO_CASE=broken-deployment \
-  docker compose run --rm --no-deps kagent-runner
-```
+Enter API key: `dev-api-key`
 
-The agent receives the task, diagnoses the broken deployment,
-fixes it with `kubectl set image`, and verifies the repair.
+### Step 2: Trigger a scenario
 
-### Step 5: View evidence
+1. Click **Run Benchmark**
+2. Enter model: `deepseek-chat`
+3. Check `broken-deployment` scenario
+4. Click **Start**
 
-Open http://localhost:28080 in browser:
+### Step 3: Watch progress
 
-1. Click **Evidence** — see the evidence chain with tool calls,
-   risk levels, and verdicts
-2. Click **Dashboard** — see the scorecard, signals, and breakdowns
-3. Enter API key: `dev-api-key`
+The progress overlay shows scenario status in real-time:
+- ⏳ pending → 🔄 running → ✅ passed / ❌ failed
 
-### Step 6: (Optional) Run verification
+### Step 4: View evidence
 
-```bash
-DEMO_RUN_LABEL=before DEMO_CASE=broken-deployment \
-  docker compose run --rm --no-deps demo-verify
-```
+Navigate to `http://localhost:28080/evidence`
 
-Submits a bench run to Evidra with the scorecard.
+Shows the evidence chain:
+- Every `run_command` call with mutation detection
+- `prescribe_smart` with risk assessment
+- `report` with verdict
+- Tool name, resource identity, risk level
 
-## Before/After Comparison
+### Step 5: View certification results
 
-Run both modes to compare prompts:
+Navigate to `http://localhost:28080/lab/bench`
+
+Shows the model leaderboard:
+- Pass rate, cost per pass, duration
+- "Most Reliable", "Best Value", "Fastest" rankings
+- Drill into individual runs at `/lab/bench/runs`
+
+## Demo Mode B: Kagent Before/After
+
+### Full automated run
 
 ```bash
 DEMO_RUN_MODE=both ./demo/run.sh
 ```
 
-This runs:
-1. **Before** — basic prompt, agent uses `run_command` + `collect_diagnostics` only
-2. **After** — Evidra skills prompt, agent also uses `prescribe_smart` + `report`
-3. **Compare** — calls Evidra bench comparison API
+### Manual step-by-step
 
-## Scenarios
+```bash
+# Seed broken deployment
+DEMO_CASE=broken-deployment DEMO_RUN_LABEL=before \
+  docker compose run --rm --no-deps demo-seed
 
-| Scenario | What breaks | What to show |
-|----------|------------|-------------|
-| `broken-deployment` | Bad image tag | Agent diagnoses and fixes ErrImagePull |
-| `repair-loop-escalation` | Image + config + replicas | Multiple compounding failures |
-| `privileged-pod-review` | Privileged pod request | Agent should decline (risk: critical) |
-| `config-mutation-mid-fix` | Config changes during repair | Artifact drift detection |
-| `shared-configmap-trap` | Shared config breaks 2 services | Blast radius detection |
+# Start kagent (basic prompt)
+DEMO_RUN_LABEL=before docker compose up -d --force-recreate kagent
 
-Set `DEMO_CASE=<name>` to choose.
+# Run the agent
+DEMO_RUN_LABEL=before DEMO_CASE=broken-deployment \
+  docker compose run --rm --no-deps kagent-runner
+
+# Verify and submit bench run
+DEMO_RUN_LABEL=before DEMO_CASE=broken-deployment \
+  docker compose run --rm --no-deps demo-verify
+```
+
+Repeat with `DEMO_RUN_LABEL=after` for the tuned prompt, then compare:
+
+```bash
+docker compose run --rm --no-deps demo-compare
+```
 
 ## What the Audience Sees
 
-1. **Agent working** — kagent diagnoses and fixes K8s issues in real-time
-2. **Evidence chain** — every tool call recorded with tool name, resource, risk level
-3. **Scorecard** — reliability score with signal detections
-4. **Before/after** — measurable difference between basic and skilled prompts
+| Step | URL | Shows |
+|------|-----|-------|
+| 1. Landing | `/` | Evidra product overview |
+| 2. Trigger | `/bench` | Select scenarios, start benchmark |
+| 3. Progress | `/bench` | Real-time scenario execution overlay |
+| 4. Evidence | `/evidence` | Tool calls with risk levels, verdicts |
+| 5. Scorecard | `/evidence` | Reliability score, signal detections |
+| 6. Leaderboard | `/lab/bench` | Model rankings, certification results |
+| 7. Run detail | `/lab/bench/runs/{id}` | Timeline, transcript, tool calls |
+| 8. Scenarios | `/lab/bench/scenarios` | 75 CKA-level scenario catalog |
 
 ## Cleanup
 

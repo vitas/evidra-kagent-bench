@@ -1,4 +1,20 @@
 services:
+  # Traefik reverse proxy — single entry point for both UIs.
+  # localhost:28080/        → evidra-api (evidence, bench trigger, embedded UI)
+  # localhost:28080/lab/    → bench-ui (certification, leaderboard)
+  traefik:
+    image: traefik:v3.4
+    ports:
+      - "${DEMO_PORT:-28080}:80"
+    volumes:
+      - ./demo/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./demo/traefik/routes.yml:/etc/traefik/routes.yml:ro
+    depends_on:
+      evidra-api:
+        condition: service_started
+      bench-ui:
+        condition: service_started
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -15,8 +31,6 @@ services:
 
   evidra-api:
     image: ${EVIDRA_API_IMAGE:-ghcr.io/vitas/evidra-api:latest}
-    ports:
-      - "${DEMO_EVIDRA_API_PORT:-28080}:8080"
     environment:
       - DATABASE_URL=postgres://evidra:evidra@postgres:5432/evidra?sslmode=disable
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
@@ -64,8 +78,6 @@ services:
       - kind
 
   # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
-  # Handles bootstrap → break → agent execution → verify → submit results.
-  # Image published from evidra-infra-bench repo: ghcr.io/vitas/bench-cli
   bench-cli:
     image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:latest}
     environment:
@@ -80,7 +92,6 @@ services:
       - INFRA_BENCH_MCP_SERVER=evidra-mcp --signing-mode optional -url http://evidra-api:8080 -api-key ${EVIDRA_API_KEY:-dev-api-key}
       - INFRA_BENCH_CLUSTER_NAME=${DEMO_CLUSTER_NAME:-evidra-demo}
       - INFRA_BENCH_REUSE_CLUSTER=true
-      # Bifrost provider — OpenAI-compatible API (DeepSeek, OpenRouter, etc.)
       - INFRA_BENCH_BIFROST_URL=${LLM_BASE_URL:-https://api.deepseek.com/v1}
       - EVIDRA_BIFROST_AUTH_BEARER=${LLM_API_KEY:-}
     extra_hosts:
@@ -102,6 +113,16 @@ services:
     networks:
       - default
       - kind
+
+  # Bench UI — certification/leaderboard viewer, served under /lab/ via Traefik.
+  bench-ui:
+    image: ${BENCH_UI_IMAGE:-ghcr.io/samebits/evidra-bench-ui:latest}
+    build:
+      context: ${BENCH_UI_CONTEXT:-../evidra-stand/ui}
+      args:
+        VITE_EVIDRA_API_URL: http://localhost:${DEMO_PORT:-28080}
+        VITE_EVIDRA_API_KEY: ${EVIDRA_API_KEY:-dev-api-key}
+        VITE_BASE_PATH: /lab/
 
   # kagent — Google ADK-based K8s remediation agent for before/after demo.
   kagent:
@@ -134,20 +155,6 @@ services:
     networks:
       - default
       - kind
-
-  # Bench UI — dedicated certification/leaderboard viewer.
-  bench-ui:
-    image: ${BENCH_UI_IMAGE:-ghcr.io/samebits/evidra-bench-ui:latest}
-    build:
-      context: ${BENCH_UI_CONTEXT:-../evidra-stand/ui}
-      args:
-        VITE_EVIDRA_API_URL: http://localhost:${DEMO_EVIDRA_API_PORT:-28080}
-        VITE_EVIDRA_API_KEY: ${EVIDRA_API_KEY:-dev-api-key}
-    ports:
-      - "${DEMO_BENCH_UI_PORT:-28081}:80"
-    depends_on:
-      evidra-api:
-        condition: service_started
 
   # Kind cluster bootstrap — run once to create the cluster and export kubeconfig.
   kind-bootstrap:
@@ -193,7 +200,7 @@ services:
       - LLM_API_KEY=${LLM_API_KEY:-}
       - KAGENT_SERVICE_URL=http://kagent:8080
       - AGENTGATEWAY_BASE_URL=http://host.docker.internal:${DEMO_AGENTGATEWAY_PORT:-23000}
-      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_EVIDRA_API_PORT:-28080}
+      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_PORT:-28080}
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
       - DEMO_ARTIFACTS_DIR=/artifacts
       - DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}
@@ -220,7 +227,7 @@ services:
     environment:
       - KUBECONFIG=/kube/config
       - DEMO_CASE=${DEMO_CASE:-broken-deployment}
-      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_EVIDRA_API_PORT:-28080}
+      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_PORT:-28080}
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
       - DEMO_ARTIFACTS_DIR=/artifacts
       - DEMO_RUN_LABEL=${DEMO_RUN_LABEL:-before}
@@ -244,7 +251,7 @@ services:
     entrypoint: ["/bin/sh"]
     command: ["/demo/scripts/compare_runs.sh"]
     environment:
-      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_EVIDRA_API_PORT:-28080}
+      - EVIDRA_BASE_URL=http://host.docker.internal:${DEMO_PORT:-28080}
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
       - DEMO_ARTIFACTS_DIR=/artifacts
     volumes:

@@ -1,0 +1,31 @@
+http:
+  routers:
+    # /lab/* → bench-ui (leaderboard, certifications)
+    bench-ui:
+      rule: "PathPrefix(`/lab`)"
+      service: bench-ui
+      middlewares:
+        - strip-lab
+
+    # Everything else → evidra-api (evidence, bench trigger, embedded UI)
+    evidra-api:
+      rule: "PathPrefix(`/`)"
+      service: evidra-api
+      priority: 1
+
+  middlewares:
+    strip-lab:
+      stripPrefix:
+        prefixes:
+          - "/lab"
+
+  services:
+    evidra-api:
+      loadBalancer:
+        servers:
+          - url: "http://evidra-api:8080"
+
+    bench-ui:
+      loadBalancer:
+        servers:
+          - url: "http://bench-ui:80"

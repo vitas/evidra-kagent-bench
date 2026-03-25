@@ -98,6 +98,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - kubeconfig:/kube
+      - bench-runs:/workspace/runs
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
@@ -261,9 +262,10 @@ services:
       - "host.docker.internal:host-gateway"
 
 volumes:
-  pgdata:
-  kubeconfig:
-  artifacts:
+  pgdata:       # Postgres data — evidra entries, bench runs, River jobs
+  kubeconfig:   # Kind cluster kubeconfig (shared across services)
+  artifacts:    # Kagent demo run artifacts (before/after)
+  bench-runs:   # bench-cli scenario run artifacts
 
 networks:
   kind:

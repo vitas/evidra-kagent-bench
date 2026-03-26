@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/hackathon/banner.svg" alt="kAgent got CKA/CKS Certified — behind AgentGateway, powered by Evidra MCP" width="100%">
+</p>
+
 # evidra-kagent-bench
 
 Evidra gives [AgentGateway](https://agentgateway.dev) an evidence and intelligence layer —

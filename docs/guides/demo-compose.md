@@ -1,90 +1,101 @@
-# Private Demo Compose
+# Demo Compose Stack
 
-Use the private demo stack to bring up the long-lived services and then run the
-short-lived jobs in sequence.
+The demo stack runs the complete Evidra bench infrastructure on a single machine
+via Docker Compose. All UIs and APIs are exposed through Traefik on port `28080`.
 
-The private stack now includes:
+## Services
 
-- `evidra-mcp` for an in-stack MCP target providing run_command + collect_diagnostics
-  (kubectl execution with auto-evidence) + prescribe_smart/report
-- `kagent`, a local `kagent-adk --local` service built from a checked-in demo
-  agent project
-- a mode-aware `kagent-runner` that prefers the real `kagent` service when
-  LLM credentials are configured and otherwise falls back to one
-  deterministic MCP `tools/call` smoke step
-- local demo manifests for both `broken-deployment` and `repair-loop-escalation`
-- paired prompt assets:
-  - `demo/prompts/kagent-before.md`
-  - `demo/prompts/kagent-after.md`
+| Service | Purpose |
+|---------|---------|
+| **traefik** | Reverse proxy — `/lab/*` → bench-ui, everything else → evidra-api |
+| **postgres** | Shared database for Evidra + bench-cli job queue |
+| **evidra-api** | Evidra API + embedded UI (evidence, bench trigger, dashboard) |
+| **evidra-mcp** | MCP server — run_command, collect_diagnostics, prescribe_smart, report |
+| **bench-cli** | Scenario executor with 75 bundled scenarios (CKA/CKS + Terraform) |
+| **bench-ui** | Certification/leaderboard viewer, served under `/lab/` |
+| **agentgateway** | MCP HTTP gateway for kagent → evidra-mcp routing |
+| **kagent** | Google ADK remediation agent (built locally) |
+| **kind-bootstrap** | Creates Kind K8s cluster (run once before stack) |
 
-Default host ports:
-
-- Evidra UI/API: `28080`
-- AgentGateway: `23000`
-
-Postgres stays internal to the compose network so the stack can coexist with a
-local development database.
-
-Core command surface:
+## Setup
 
 ```bash
-docker compose -f docker-compose.yml up -d postgres evidra-api
-docker compose -f docker-compose.yml run --rm kind-bootstrap
-docker compose -f docker-compose.yml up -d agentgateway
-docker compose -f docker-compose.yml up -d kagent
-docker compose -f docker-compose.yml run --rm demo-seed
-docker compose -f docker-compose.yml run --rm kagent-runner
-docker compose -f docker-compose.yml run --rm demo-verify
-docker compose -f docker-compose.yml run --rm demo-compare   # after "both" mode
+# 1. Configure credentials
+cp .env.example .env
+# Edit .env — set at least one provider key (e.g. DEEPSEEK_API_KEY)
+
+# 2. Create Kind cluster (one-time)
+docker compose build kind-bootstrap
+docker compose run --rm kind-bootstrap
+
+# 3. Boot the stack
+docker compose up -d
 ```
 
-For a single wrapper command, run:
+## Host Ports
+
+- Evidra UI/API + Bench UI: `28080` (configurable via `DEMO_PORT`)
+- AgentGateway: `23000` (configurable via `DEMO_AGENTGATEWAY_PORT`)
+
+## How It Works
+
+1. `kind-bootstrap` creates or reuses a Kind cluster and exports a shared
+   kubeconfig to the `kubeconfig` volume.
+
+2. `bench-cli` starts as a service on port `8090`, syncs its 75 bundled
+   scenarios to evidra-api on startup, and waits for certify requests.
+
+3. When you trigger a run from the UI (or via `POST /v1/bench/trigger`),
+   evidra-api delegates to bench-cli via `POST /v1/certify`.
+
+4. bench-cli provisions a namespace in the Kind cluster, injects the failure
+   scenario, runs the LLM agent loop (via evidra-mcp for tool calls), and
+   verifies the outcome.
+
+5. During execution, bench-cli reports progress back to evidra-api via webhook
+   (`POST /v1/bench/trigger/{id}/progress`), enabling real-time status in the UI.
+
+6. On completion, bench-cli submits the run record to `POST /v1/bench/runs`
+   with duration, checks passed/failed, and evidence mode.
+
+7. Results appear in the leaderboard at `/lab/bench` and evidence chain at
+   `/evidence`.
+
+## Environment Variables
+
+Set in `.env`:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DEEPSEEK_API_KEY` | — | DeepSeek provider key |
+| `OPENAI_API_KEY` | — | OpenAI provider key |
+| `ANTHROPIC_API_KEY` | — | Anthropic provider key |
+| `GEMINI_API_KEY` | — | Google Gemini provider key |
+| `EVIDRA_API_KEY` | `dev-api-key` | Evidra API auth token |
+| `KAGENT_MODEL` | `deepseek-chat` | Default model for kagent |
+| `DEMO_PORT` | `28080` | Host port for Traefik |
+| `DEMO_CLUSTER_NAME` | `evidra-demo` | Kind cluster name |
+
+Models with a configured provider key appear as available in the bench UI.
+
+## Kagent Agent
+
+The `kagent` service builds from `demo/kagent/Dockerfile` using Google ADK
+(`kagent-adk v0.8.0-beta9`). It reads system prompts from `demo/prompts/`:
+
+- `kagent-before.md` — basic prompt (run_command + collect_diagnostics only)
+- `kagent-after.md` — Evidra-aware prompt (adds prescribe_smart + report)
+
+The Dockerfile pins `litellm<1.82.7` due to a supply chain attack in later
+versions (see `docs/known-issues.md`). It also uses a patched ADK fork for
+Groq tool calling compatibility (source-build workaround).
+
+The kagent service takes roughly 25-30 seconds before `/health` starts
+accepting connections due to ADK initialization.
+
+## Cleanup
 
 ```bash
-./demo/run.sh
+docker compose down -v --remove-orphans
+kind delete cluster --name evidra-demo
 ```
-
-Optional:
-
-- `KAGENT_MODEL`
-  defaults to `qwen-plus`
-- `LLM_BASE_URL`
-  OpenAI-compatible base URL for the LLM provider
-- `LLM_API_KEY`
-  API key for the LLM provider
-
-Current flow:
-
-1. `kind-bootstrap` creates or reuses the demo kind cluster and exports a shared kubeconfig.
-2. `demo-seed` applies the scenario specified by `DEMO_CASE` into the cluster.
-3. `kagent` starts as a local `kagent-adk --local` A2A service and reads
-   `kagent-before.md` or `kagent-after.md` from `demo/prompts/` through
-   `KAGENT_SYSTEM_PROMPT_FILE`. In practice the local service can take roughly
-   25-30 seconds before `/health` starts accepting connections, so the stack
-   treats readiness separately from simple process start.
-4. `kagent-runner` stores the exact prompt used under the per-run artifacts
-   directory, waits for `http://kagent:8080/health`, reads
-   `/.well-known/agent-card.json`, and sends a JSON-RPC `message/send` request
-   to the service root.
-5. When `LLM_BASE_URL` and `LLM_API_KEY` are set, the real `kagent`
-   service path is used with `KAGENT_MODEL=qwen-plus`.
-6. Without LLM credentials, `kagent-runner` falls back to a read-only
-   `run_command` call (`kubectl get pods`) through evidra-mcp so the rest of
-   the private stack can still be smoke-tested locally.
-7. `demo-verify` checks the cluster state, confirms new evidence entries via
-   `GET /v1/evidence/entries?session_id=`, fetches the scorecard via
-   `GET /v1/evidence/scorecard`, and submits a bench run to
-   `POST /v1/bench/runs` with the scenario result and scorecard metadata.
-8. `demo-compare` (runs automatically in `both` mode) calls
-   `GET /v1/bench/compare/runs?a=&b=` to compare the before and after bench
-   runs and prints a delta summary.
-
-Implementation note:
-
-- The checked-in `demo/kagent/Dockerfile` currently builds `kagent-adk` from
-  the upstream `v0.8.0-beta9` source tag. The published container reference we
-  tried first was not pullable in this environment, so the private demo uses a
-  source-build workaround instead of a released base image.
-
-`repair-loop-escalation` is already wired into the seed/verify scripts for the
-first real `kagent` before/after scenario.

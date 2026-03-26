@@ -83,6 +83,20 @@ services:
       - default
       - kind
 
+  # Kind cluster bootstrap — run once before starting the stack.
+  # Creates the 'kind' Docker network and exports kubeconfig to the shared volume.
+  #   docker compose run --rm kind-bootstrap
+  kind-bootstrap:
+    build:
+      context: .
+      dockerfile: demo/kind/Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./demo/kind/kind-config.yaml:/demo/kind-config.yaml:ro
+      - kubeconfig:/kube
+    networks:
+      - kind
+
   # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
   # Provisions Kind cluster automatically via orchestrator.
   bench-cli:

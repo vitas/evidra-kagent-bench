@@ -3,63 +3,58 @@
 ## Prerequisites
 
 - Docker with Compose v2
-- DeepSeek API key (or any OpenAI-compatible provider)
-- `.env` file with credentials
-
-```bash
-cat > .env <<EOF
-EVIDRA_API_KEY=dev-api-key
-DEMO_CLUSTER_NAME=evidra-demo
-KAGENT_MODEL=deepseek-chat
-LLM_BASE_URL=https://api.deepseek.com/v1
-LLM_API_KEY=your-key
-EOF
-```
+- At least one LLM provider API key (DeepSeek, OpenAI, Anthropic, or Gemini)
 
 ## Setup (one-time)
 
 ```bash
-# Build local images
-docker compose build kind-bootstrap kagent
-docker build -t evidra-demo-runtime:local -f demo/runtime/Dockerfile .
+# 1. Configure credentials
+cp .env.example .env
+# Edit .env — set at least one provider key (e.g. DEEPSEEK_API_KEY)
 
-# Create Kind cluster
+# 2. Create Kind cluster
+docker compose build kind-bootstrap
 docker compose run --rm kind-bootstrap
 ```
 
 ## Boot the Stack
 
 ```bash
-docker compose up -d postgres evidra-api evidra-mcp bench-cli bench-ui traefik agentgateway
+docker compose up -d
 ```
 
-Wait 10 seconds for bench-cli to sync scenarios.
+Wait ~15 seconds for bench-cli to sync scenarios and all services to become healthy.
 
-Open **http://localhost:28080** — single URL for everything.
+Open **http://localhost:28080/lab** — single URL for everything.
 
-## Demo Mode A: Bench Trigger (UI)
+API key for authenticated pages: **`dev-api-key`**
 
-### Step 1: Open bench dashboard
+## Demo Walkthrough
 
-Navigate to `http://localhost:28080/bench`
+### Step 1: Open the Run page
 
-Enter API key: `dev-api-key`
+Navigate to [localhost:28080/lab/run](http://localhost:28080/lab/run)
+
+This is where you select scenarios and trigger benchmark runs.
 
 ### Step 2: Trigger a scenario
 
-1. Click **Run Benchmark**
-2. Enter model: `deepseek-chat`
-3. Check `broken-deployment` scenario
-4. Click **Start**
+1. Select a model from the dropdown (e.g. `deepseek-chat`)
+2. Check the `broken-deployment` scenario
+3. Click **Run Benchmark**
 
 ### Step 3: Watch progress
+
+Navigate to [localhost:28080/bench](http://localhost:28080/bench)
+
+Enter API key: `dev-api-key`
 
 The progress overlay shows scenario status in real-time:
 - ⏳ pending → 🔄 running → ✅ passed / ❌ failed
 
-### Step 4: View evidence
+### Step 4: View evidence chain
 
-Navigate to `http://localhost:28080/evidence`
+Navigate to [localhost:28080/evidence](http://localhost:28080/evidence)
 
 Shows the evidence chain:
 - Every `run_command` call with mutation detection
@@ -69,58 +64,32 @@ Shows the evidence chain:
 
 ### Step 5: View certification results
 
-Navigate to `http://localhost:28080/lab/bench`
+Navigate to [localhost:28080/lab/bench](http://localhost:28080/lab/bench)
 
 Shows the model leaderboard:
 - Pass rate, cost per pass, duration
 - "Most Reliable", "Best Value", "Fastest" rankings
-- Drill into individual runs at `/lab/bench/runs`
+- Drill into individual runs at [/lab/bench/runs](http://localhost:28080/lab/bench/runs)
 
-## Demo Mode B: Kagent Before/After
+### Step 6: Browse scenario catalog
 
-### Full automated run
+Navigate to [localhost:28080/lab/bench/scenarios](http://localhost:28080/lab/bench/scenarios)
 
-```bash
-DEMO_RUN_MODE=both ./demo/run.sh
-```
-
-### Manual step-by-step
-
-```bash
-# Seed broken deployment
-DEMO_CASE=broken-deployment DEMO_RUN_LABEL=before \
-  docker compose run --rm --no-deps demo-seed
-
-# Start kagent (basic prompt)
-DEMO_RUN_LABEL=before docker compose up -d --force-recreate kagent
-
-# Run the agent
-DEMO_RUN_LABEL=before DEMO_CASE=broken-deployment \
-  docker compose run --rm --no-deps kagent-runner
-
-# Verify and submit bench run
-DEMO_RUN_LABEL=before DEMO_CASE=broken-deployment \
-  docker compose run --rm --no-deps demo-verify
-```
-
-Repeat with `DEMO_RUN_LABEL=after` for the tuned prompt, then compare:
-
-```bash
-docker compose run --rm --no-deps demo-compare
-```
+75 scenarios across two certification exams: CKA/CKS (Kubernetes, Helm, ArgoCD) and Terraform.
+Judges can see the full exam scope here.
 
 ## What the Audience Sees
 
 | Step | URL | Shows |
 |------|-----|-------|
-| 1. Landing | `/` | Evidra product overview |
-| 2. Trigger | `/bench` | Select scenarios, start benchmark |
-| 3. Progress | `/bench` | Real-time scenario execution overlay |
-| 4. Evidence | `/evidence` | Tool calls with risk levels, verdicts |
-| 5. Scorecard | `/evidence` | Reliability score, signal detections |
-| 6. Leaderboard | `/lab/bench` | Model rankings, certification results |
-| 7. Run detail | `/lab/bench/runs/{id}` | Timeline, transcript, tool calls |
-| 8. Scenarios | `/lab/bench/scenarios` | 75 CKA-level scenario catalog |
+| 1. Landing | [/lab](http://localhost:28080/lab) | Bench overview |
+| 2. Run | [/lab/run](http://localhost:28080/lab/run) | Select model + scenarios, trigger run |
+| 3. Progress | [/bench](http://localhost:28080/bench) | Real-time scenario execution |
+| 4. Evidence | [/evidence](http://localhost:28080/evidence) | Tool calls with risk levels, verdicts |
+| 5. Leaderboard | [/lab/bench](http://localhost:28080/lab/bench) | Model rankings, certification results |
+| 6. Run detail | [/lab/bench/runs](http://localhost:28080/lab/bench/runs) | Timeline, transcript, tool calls |
+| 7. Compare | [/lab/bench/compare](http://localhost:28080/lab/bench/compare) | Side-by-side model comparison |
+| 8. Scenarios | [/lab/bench/scenarios](http://localhost:28080/lab/bench/scenarios) | 75 scenario catalog (CKA/CKS + Terraform) |
 
 ## Cleanup
 

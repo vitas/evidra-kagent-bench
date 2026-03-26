@@ -9,80 +9,68 @@ evidra-kagent-bench — benchmark harness for evaluating AI infrastructure agent
 ## Quick Start
 
 ```bash
-# Set LLM provider
-export LLM_BASE_URL=https://api.deepseek.com/v1
-export LLM_API_KEY=your-key
-export KAGENT_MODEL=deepseek-chat
+# Set LLM provider keys (models with a configured key appear as available in the bench UI)
+export DEEPSEEK_API_KEY=your-key
 
-# Boot infrastructure
-docker compose up -d postgres evidra-api evidra-mcp bench-cli agentgateway
+# Create Kind cluster (one-time — creates 'kind' network + kubeconfig)
+docker compose build kind-bootstrap
 docker compose run --rm kind-bootstrap
 
-# Option A: Trigger scenarios from UI
-open http://localhost:28080/bench   # Select scenarios, click "Run Benchmark"
+# Boot infrastructure
+docker compose up -d
 
-# Option B: Run kagent before/after comparison
-DEMO_RUN_MODE=both ./demo/run.sh
+# Open the UI
+open http://localhost:28080/lab   # Select scenarios, click "Run Benchmark"
 ```
 
 ## Architecture
 
-Two execution modes share the same Evidra evidence + bench infrastructure:
-
 ```
-Mode A: Bench Trigger (UI → bench-cli)
-  UI → POST /v1/bench/trigger → evidra-api (RemoteExecutor) → bench-cli /v1/certify
-    bench-cli → bootstrap → break → agent loop (LLM + evidra-mcp) → verify → submit
-
-Mode B: Kagent Demo (before/after prompt comparison)
-  kagent → AgentGateway → evidra-mcp → Kind cluster
-                                ↓ forward evidence
-                           evidra-api → postgres
+UI → POST /v1/bench/trigger → evidra-api (RemoteExecutor) → bench-cli /v1/certify
+  bench-cli → bootstrap → break → agent loop (LLM + evidra-mcp) → verify → submit
 ```
 
 ## Services (docker-compose.yml)
 
-**Core infrastructure:**
+- **traefik** — Reverse proxy: `/lab/*` → bench-ui, everything else → evidra-api
 - **postgres** — Shared database for Evidra + bench-cli River job queue
 - **evidra-api** — Evidra API + embedded UI (bench dashboard, leaderboard, evidence)
 - **evidra-mcp** — MCP server providing run_command, collect_diagnostics, prescribe_smart, report
 - **bench-cli** — Scenario executor with 75 bundled scenarios (ghcr.io/vitas/bench-cli)
+- **bench-ui** — Certification/leaderboard viewer, served under /lab/ via Traefik
 - **agentgateway** — MCP HTTP gateway for kagent → evidra-mcp routing
-
-**Kagent demo:**
 - **kagent** — AI remediation agent (Google ADK + LiteLLM)
-- **demo-seed** — Injects failure scenarios into Kind cluster
-- **kagent-runner** — Orchestrates agent execution
-- **demo-verify** — Validates results + submits bench runs
-- **demo-compare** — Compares before/after bench runs
-
-**Setup:**
-- **kind-bootstrap** — Creates Kind K8s cluster (run once)
 
 ## Scenarios
 
-5 demo scenarios in `demo/manifests/`:
+5 demo scenarios in `demo/manifests/` (used as reference/documentation):
 - `broken-deployment` — bad image tag → ErrImagePull
 - `repair-loop-escalation` — compounding failures (ConfigMap + image + replicas)
 - `privileged-pod-review` — agent must evaluate/decline a privileged pod
 - `config-mutation-mid-fix` — ConfigMap mutates during repair (artifact drift)
 - `shared-configmap-trap` — broken config affects two deployments (blast radius)
 
-75 additional scenarios bundled in bench-cli image (kubernetes, helm, argocd, terraform).
+75 scenarios bundled in bench-cli across two exams: CKA/CKS (kubernetes, helm, argocd) and Terraform.
 
 ## Environment Variables
 
 - `EVIDRA_API_KEY` — Evidra API auth (default: `dev-api-key`)
-- `DEMO_CASE` — Scenario for kagent demo (default: `broken-deployment`)
-- `DEMO_RUN_MODE` — `before`, `after`, or `both`
 - `KAGENT_MODEL` — LLM model name (default: `deepseek-chat`)
-- `LLM_BASE_URL` — OpenAI-compatible API URL
-- `LLM_API_KEY` — LLM API key
+- `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `DASHSCOPE_API_KEY` — LLM provider keys
 
 ## Tests
 
 ```bash
-bash tests/test_demo.sh
+cd tests/e2e && npm install && npx playwright install --with-deps chromium
+
+# Smoke — verifies all UI pages load (no LLM key needed)
+npm run test:smoke
+
+# Full — triggers a real benchmark run (requires LLM_API_KEY)
+npm run test:full
+
+# Both
+npm test
 ```
 
 ## Evidra APIs Used

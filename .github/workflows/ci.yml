@@ -14,18 +14,3 @@ jobs:
 
       - name: Validate docker-compose
         run: docker compose -f docker-compose.yml config --quiet
-
-      - name: Run structure tests
-        run: bash tests/test_demo.sh
-
-      - name: Check scripts are executable
-        run: |
-          for script in demo/run.sh demo/scripts/*.sh tests/test_demo.sh; do
-            test -x "$script" || { echo "FAIL: $script not executable"; exit 1; }
-          done
-
-      - name: Shellcheck demo scripts
-        uses: ludeeus/action-shellcheck@master
-        with:
-          scandir: demo/scripts
-          severity: warning

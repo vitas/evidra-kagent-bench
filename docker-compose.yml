@@ -127,6 +127,38 @@ services:
         VITE_EVIDRA_API_KEY: ${EVIDRA_API_KEY:-dev-api-key}
         VITE_BASE_PATH: /lab/
 
+  # kagent — Google ADK-based K8s agent, benchmarked via agentgateway + evidra-mcp.
+  kagent:
+    build:
+      context: ./demo/kagent
+      dockerfile: Dockerfile
+    environment:
+      - KAGENT_URL=http://unused.local
+      - KAGENT_NAME=demoagent
+      - KAGENT_NAMESPACE=demo
+      - KAGENT_MCP_URL=http://agentgateway:3000/mcp/http
+      - KAGENT_MODEL=${KAGENT_MODEL:-deepseek-chat}
+      - KAGENT_MODEL_PROVIDER=${KAGENT_MODEL_PROVIDER:-openai}
+      - OPENAI_BASE_URL=${LLM_BASE_URL:-}
+      - OPENAI_API_KEY=${LLM_API_KEY:-}
+      - DEEPSEEK_API_KEY=${LLM_API_KEY:-}
+      - KAGENT_TOOL_ALLOW_LIST=${KAGENT_TOOL_ALLOW_LIST:-}
+      - KAGENT_SYSTEM_PROMPT_FILE=/demo/prompts/kagent-${DEMO_RUN_LABEL:-before}.md
+    volumes:
+      - ./demo/prompts:/demo/prompts:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    depends_on:
+      agentgateway:
+        condition: service_started
+    networks:
+      - default
+      - kind
+
 volumes:
   pgdata:       # Postgres data — evidra entries, bench runs, River jobs
   kubeconfig:   # Kind cluster kubeconfig (shared across services)

@@ -83,6 +83,21 @@ services:
       - default
       - kind
 
+  # Seed demo data — loads pre-recorded bench runs and evidence into postgres.
+  # Runs once after evidra-api completes migrations, idempotent via ON CONFLICT.
+  demo-seed:
+    image: postgres:17-alpine
+    entrypoint: ["/bin/sh", "/seed/seed.sh"]
+    environment:
+      - DATABASE_URL=postgres://evidra:evidra@postgres:5432/evidra?sslmode=disable
+    volumes:
+      - ./demo/postgres/seed.sh:/seed/seed.sh:ro
+      - ./demo/postgres/seed-data.sql:/seed/seed-data.sql:ro
+    depends_on:
+      evidra-api:
+        condition: service_started
+    restart: "no"
+
   # Kind cluster bootstrap — run once before starting the stack.
   # Creates the 'kind' Docker network and exports kubeconfig to the shared volume.
   #   docker compose run --rm kind-bootstrap

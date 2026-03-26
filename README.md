@@ -22,6 +22,7 @@ docker compose up -d
 open http://localhost:28080/lab
 ```
 
+Demo data (bench runs, evidence, scenarios) is auto-seeded on first start.
 API key for authenticated pages: **`dev-api-key`**
 
 ## UI Pages

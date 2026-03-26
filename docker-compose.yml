@@ -116,8 +116,15 @@ services:
       - kind
 
   # Bench UI — certification/leaderboard viewer, served under /lab/ via Traefik.
+  # Built locally to inject demo-specific API URL and key at build time.
   bench-ui:
     image: ${BENCH_UI_IMAGE:-ghcr.io/vitas/bench-ui:latest}
+    build:
+      context: ${BENCH_UI_CONTEXT:-../evidra-bench/ui}
+      args:
+        VITE_EVIDRA_API_URL: http://localhost:${DEMO_PORT:-28080}
+        VITE_EVIDRA_API_KEY: ${EVIDRA_API_KEY:-dev-api-key}
+        VITE_BASE_PATH: /lab/
 
   # kagent — Google ADK-based K8s remediation agent for before/after demo.
   kagent:

@@ -64,15 +64,22 @@ test.describe("Demo Flow", () => {
     await page.screenshot({ path: "test-results/01-bench-landing.png" });
   });
 
-  // Step 2: Browse and select scenarios
-  test("2. Browse scenarios", async ({ page }) => {
-    await page.goto(`${LAB_URL}/scenarios`);
+  // Step 2: Select scenarios and model on the Run page
+  test("2. Run page — select scenarios and model", async ({ page }) => {
+    await page.goto(`${LAB_URL}/run`);
     await page.waitForLoadState("networkidle");
 
-    // Scenarios page should list available scenarios.
-    const body = await page.textContent("body");
-    expect(body).toBeTruthy();
-    await page.screenshot({ path: "test-results/02-scenarios.png" });
+    await expect(page.locator("text=Run Benchmark")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Select a scenario.
+    const firstScenario = page.locator('input[type="checkbox"]').first();
+    await firstScenario.check();
+
+    // Generated command should appear.
+    await expect(page.locator("text=Generated Command")).toBeVisible();
+    await page.screenshot({ path: "test-results/02-run-page.png" });
   });
 
   // Step 3: Start certify run

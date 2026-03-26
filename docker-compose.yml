@@ -118,7 +118,7 @@ services:
   # Bench UI — certification/leaderboard viewer, served under /lab/ via Traefik.
   # Built locally to inject demo-specific API URL and key at build time.
   bench-ui:
-    image: ${BENCH_UI_IMAGE:-ghcr.io/vitas/bench-ui:latest}
+    image: ${BENCH_UI_IMAGE:-evidra-bench-ui:demo}
     build:
       context: ${BENCH_UI_CONTEXT:-../evidra-bench/ui}
       args:

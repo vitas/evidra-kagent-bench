@@ -38,6 +38,12 @@ services:
       - LISTEN_ADDR=:8080
       - EVIDRA_BENCH_SERVICE_URL=http://bench-cli:8090
       - EVIDRA_SELF_URL=http://evidra-api:8080
+      # LLM provider API keys — models with a set key appear as available in the UI.
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

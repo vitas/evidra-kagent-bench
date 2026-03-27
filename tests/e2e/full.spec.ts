@@ -32,12 +32,15 @@ test.describe("Full — trigger and verify benchmark run", () => {
   test.setTimeout(300_000); // 5 minutes — scenario execution can be slow
 
   let jobId: string;
+  let runId: string;
 
   test("Trigger certify run", async () => {
     const triggerRes = await apiRequest("/v1/bench/trigger", {
       method: "POST",
       body: JSON.stringify({
         model: process.env.KAGENT_MODEL || "deepseek-chat",
+        execution_mode: "a2a",
+        evidence_mode: "smart",
         scenarios: ["broken-deployment"],
       }),
     });
@@ -61,6 +64,19 @@ test.describe("Full — trigger and verify benchmark run", () => {
 
     expect(["completed", "failed"]).toContain(status);
     expect(job.completed).toBe(1);
+    runId = job.run_ids?.[0];
+    expect(runId).toBeTruthy();
+  });
+
+  test("Run metadata records hosted a2a execution", async () => {
+    expect(runId).toBeTruthy();
+
+    const runRes = await apiRequest(`/v1/bench/runs/${runId}`);
+    expect(runRes.status).toBe(200);
+
+    const run = await runRes.json();
+    expect(run.adapter).toBe("a2a");
+    expect(run.evidence_mode).toBe("smart");
   });
 
   test("Results page shows run data", async ({ page }) => {

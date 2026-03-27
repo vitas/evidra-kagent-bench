@@ -58,30 +58,19 @@ services:
     depends_on:
       evidra-api:
         condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/health >/dev/null"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - default
-      - kind
+    # Note: healthcheck removed — distroless image has no shell/curl/wget.
+    # The service is healthy when it starts accepting MCP connections.
 
   agentgateway:
     image: cr.agentgateway.dev/agentgateway:0.11.1
     command: ["--file", "/etc/agentgateway/config.yaml"]
     ports:
       - "${DEMO_AGENTGATEWAY_PORT:-23000}:3000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./demo/agentgateway/config.yaml:/etc/agentgateway/config.yaml:ro
     depends_on:
       evidra-mcp:
         condition: service_started
-    networks:
-      - default
-      - kind
 
   # Seed demo data — loads pre-recorded bench runs and evidence into postgres.
   # Runs once after evidra-api completes migrations, idempotent via ON CONFLICT.
@@ -98,24 +87,24 @@ services:
         condition: service_started
     restart: "no"
 
-  # Kind cluster bootstrap — run once before starting the stack.
-  # Creates the 'kind' Docker network and exports kubeconfig to the shared volume.
-  #   docker compose run --rm kind-bootstrap
-  kind-bootstrap:
-    build:
-      context: .
-      dockerfile: demo/kind/Dockerfile
+  # K3d cluster setup — creates or reuses a K3s cluster on the compose network.
+  # No external network needed — k3d joins the default network via --network flag.
+  #   docker compose run --rm k3d-setup
+  k3d-setup:
+    image: ghcr.io/k3d-io/k3d:5-dind
+    entrypoint: ["/bin/sh", "/setup/setup.sh"]
+    environment:
+      - DEMO_CLUSTER_NAME=${DEMO_CLUSTER_NAME:-evidra-demo}
+      - DEMO_NETWORK=${COMPOSE_PROJECT_NAME:-evidra-kagent-bench}_default
+      - KUBECONFIG_DIR=/output
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./demo/kind/kind-config.yaml:/demo/kind-config.yaml:ro
-      - kubeconfig:/kube
-    networks:
-      - kind
+      - ./demo/k3d/setup.sh:/setup/setup.sh:ro
+      - kubeconfig:/output
 
   # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
-  # Provisions Kind cluster automatically via orchestrator.
   bench-cli:
-    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.5.0}
+    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.5.1}
     environment:
       - EVIDRA_URL=http://evidra-api:8080
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
@@ -131,8 +120,6 @@ services:
       - INFRA_BENCH_BIFROST_URL=${LLM_BASE_URL:-https://api.deepseek.com/v1}
       - EVIDRA_BIFROST_AUTH_BEARER=${LLM_API_KEY:-}
       - INFRA_BENCH_A2A_AGENT_URL=http://kagent:8080
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - kubeconfig:/kube
       - bench-runs:/workspace/runs
@@ -148,9 +135,6 @@ services:
       timeout: 3s
       retries: 15
       start_period: 30s
-    networks:
-      - default
-      - kind
 
   # Bench UI — certification/leaderboard viewer, served under /lab/ via Traefik.
   # Pre-built with demo settings (localhost:28080, /lab/ base path).
@@ -185,14 +169,7 @@ services:
     depends_on:
       agentgateway:
         condition: service_started
-    networks:
-      - default
-      - kind
 
 volumes:
-  kubeconfig:   # Kind cluster kubeconfig (shared across services)
+  kubeconfig:   # K3d cluster kubeconfig (shared across services)
   bench-runs:   # bench-cli scenario run artifacts
-
-networks:
-  kind:
-    external: true

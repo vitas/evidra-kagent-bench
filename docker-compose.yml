@@ -22,7 +22,7 @@ services:
       POSTGRES_PASSWORD: evidra
       POSTGRES_DB: evidra
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./demo/postgres/data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U evidra"]
       interval: 5s
@@ -30,7 +30,7 @@ services:
       retries: 5
 
   evidra-api:
-    image: ${EVIDRA_API_IMAGE:-ghcr.io/vitas/evidra-api:latest}
+    image: ${EVIDRA_API_IMAGE:-ghcr.io/vitas/evidra-api:0.5.15}
     environment:
       - DATABASE_URL=postgres://evidra:evidra@postgres:5432/evidra?sslmode=disable
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
@@ -39,7 +39,7 @@ services:
       - EVIDRA_BENCH_SERVICE_URL=http://bench-cli:8090
       - EVIDRA_SELF_URL=http://evidra-api:8080
       # LLM provider API keys — models with a set key appear as available in the UI.
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-${LLM_API_KEY:-}}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
@@ -49,7 +49,7 @@ services:
         condition: service_healthy
 
   evidra-mcp:
-    image: ${EVIDRA_MCP_IMAGE:-ghcr.io/vitas/evidra-mcp:latest}
+    image: ${EVIDRA_MCP_IMAGE:-ghcr.io/vitas/evidra-mcp:0.5.15}
     command: ["-transport", "streamable-http", "-port", "3001", "-signing-mode", "optional", "-evidence-dir", "/tmp/evidence", "-url", "http://evidra-api:8080", "-api-key", "${EVIDRA_API_KEY:-dev-api-key}"]
     environment:
       - KUBECONFIG=/kube/config
@@ -115,7 +115,7 @@ services:
   # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
   # Provisions Kind cluster automatically via orchestrator.
   bench-cli:
-    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:latest}
+    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.3.2}
     environment:
       - EVIDRA_URL=http://evidra-api:8080
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
@@ -152,15 +152,9 @@ services:
       - kind
 
   # Bench UI — certification/leaderboard viewer, served under /lab/ via Traefik.
-  # Built locally to inject demo-specific API URL and key at build time.
+  # Pre-built with demo settings (localhost:28080, /lab/ base path).
   bench-ui:
-    image: ${BENCH_UI_IMAGE:-evidra-bench-ui:demo}
-    build:
-      context: ${BENCH_UI_CONTEXT:-../evidra-bench/ui}
-      args:
-        VITE_EVIDRA_API_URL: http://localhost:${DEMO_PORT:-28080}
-        VITE_EVIDRA_API_KEY: ${EVIDRA_API_KEY:-dev-api-key}
-        VITE_BASE_PATH: /lab/
+    image: ${BENCH_UI_IMAGE:-ghcr.io/vitas/bench-ui:demo}
 
   # kagent — Google ADK-based K8s agent, benchmarked via agentgateway + evidra-mcp.
   kagent:
@@ -195,7 +189,6 @@ services:
       - kind
 
 volumes:
-  pgdata:       # Postgres data — evidra entries, bench runs, River jobs
   kubeconfig:   # Kind cluster kubeconfig (shared across services)
   bench-runs:   # bench-cli scenario run artifacts
 

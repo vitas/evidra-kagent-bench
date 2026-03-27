@@ -30,7 +30,7 @@ services:
       retries: 5
 
   evidra-api:
-    image: ${EVIDRA_API_IMAGE:-ghcr.io/vitas/evidra-api:0.5.15}
+    image: ${EVIDRA_API_IMAGE:-ghcr.io/vitas/evidra-api:0.5.16}
     environment:
       - DATABASE_URL=postgres://evidra:evidra@postgres:5432/evidra?sslmode=disable
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
@@ -49,7 +49,7 @@ services:
         condition: service_healthy
 
   evidra-mcp:
-    image: ${EVIDRA_MCP_IMAGE:-ghcr.io/vitas/evidra-mcp:0.5.15}
+    image: ${EVIDRA_MCP_IMAGE:-ghcr.io/vitas/evidra-mcp:0.5.16}
     command: ["-transport", "streamable-http", "-port", "3001", "-signing-mode", "optional", "-evidence-dir", "/tmp/evidence", "-url", "http://evidra-api:8080", "-api-key", "${EVIDRA_API_KEY:-dev-api-key}"]
     environment:
       - KUBECONFIG=/kube/config
@@ -115,7 +115,7 @@ services:
   # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
   # Provisions Kind cluster automatically via orchestrator.
   bench-cli:
-    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.3.2}
+    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.3.3}
     environment:
       - EVIDRA_URL=http://evidra-api:8080
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}

@@ -104,7 +104,7 @@ services:
 
   # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
   bench-cli:
-    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.5.4}
+    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.5.5}
     environment:
       - EVIDRA_URL=http://evidra-api:8080
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}
@@ -117,6 +117,7 @@ services:
       - INFRA_BENCH_MCP_SERVER=evidra-mcp --signing-mode optional -url http://evidra-api:8080 -api-key ${EVIDRA_API_KEY:-dev-api-key}
       - INFRA_BENCH_CLUSTER_NAME=${DEMO_CLUSTER_NAME:-evidra-demo}
       - INFRA_BENCH_REUSE_CLUSTER=true
+      - INFRA_BENCH_PARALLEL=${BENCH_PARALLEL:-1}
       - INFRA_BENCH_BIFROST_URL=${LLM_BASE_URL:-https://api.deepseek.com/v1}
       - EVIDRA_BIFROST_AUTH_BEARER=${LLM_API_KEY:-}
       - INFRA_BENCH_A2A_AGENT_URL=http://kagent:8080

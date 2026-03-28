@@ -8,92 +8,56 @@
 ## Setup (one-time)
 
 ```bash
-# 1. Configure credentials
-cp .env.example .env
-# Edit .env — set at least one provider key (e.g. DEEPSEEK_API_KEY)
-
-# 2. Create Kind cluster
-docker compose build kind-bootstrap
-docker compose run --rm kind-bootstrap
-```
-
-## Boot the Stack
-
-```bash
+cp .env.example .env          # set at least one provider key
+docker compose run --rm k3d-setup
 docker compose up -d
 ```
 
-Wait ~15 seconds for bench-cli to sync scenarios and all services to become healthy.
-
-Open **http://localhost:28080/lab** — single URL for everything.
-
 API key for authenticated pages: **`dev-api-key`**
 
-## Demo Walkthrough
+---
 
-### Step 1: Open the Run page
+## Part 1: Secure & Govern MCP (AgentGateway + Evidra)
 
-Navigate to [localhost:28080/lab/run](http://localhost:28080/lab/run)
+*Guided scroll through [localhost:28080](http://localhost:28080)*
 
-This is where you select scenarios and trigger benchmark runs.
+| Step | Section | Talking point |
+|------|---------|---------------|
+| 1 | Hero | "Know what your agent intended. Know what happened." |
+| 2 | Why evidra-mcp | "Smart output — 60x fewer tokens. Auto-evidence — zero agent code." |
+| 3 | Protocol | "Prescribe before. Report after. Every mutation through AgentGateway recorded." |
+| 4 | Signals | "8 detectors — retry loops, blast radius, risk escalation. Fires on day one." |
+| 5 | Benchmark table | "Sonnet discovers the protocol without any skill. The skill sharpens it." |
+| 6 | "Open Bench →" | Transition to Part 2 |
 
-### Step 2: Trigger a scenario
+### Key message
 
-1. Select a model from the dropdown (e.g. `deepseek-chat`)
-2. Check the `broken-deployment` scenario
-3. Click **Run Benchmark**
+Evidra plugs in behind AgentGateway — no gateway code changes — and adds auto-evidence recording, risk assessment, and behavioral signal detection on every tool call flowing through the gateway.
 
-### Step 3: Watch progress
+---
 
-Navigate to [localhost:28080/bench](http://localhost:28080/bench)
+## Part 2: Building Cool Agents (kagent Certification)
 
-Enter API key: `dev-api-key`
+| Step | Page | Talking point |
+|------|------|---------------|
+| 7 | [/lab](http://localhost:28080/lab) | "75 scenarios. CKA/CKS + Terraform. Real clusters." |
+| 8 | [/lab/scenarios](http://localhost:28080/lab/scenarios) | Browse tracks, levels — "not synthetic benchmarks" |
+| 9 | [/lab/run](http://localhost:28080/lab/run) | Trigger `broken-deployment` via kagent A2A |
+| 10 | [/bench](http://localhost:28080/bench) | Watch progress — "kagent working through AgentGateway right now" |
+| 11 | [/lab/bench](http://localhost:28080/lab/bench) | Leaderboard — pass rate, cost, speed |
+| 12 | [/lab/bench/runs](http://localhost:28080/lab/bench/runs) | Drill into run — timeline, transcript |
+| 13 | Quick tour: insights, compare | "The data to improve kagent" |
+| 14 | Close | "Run it once to test. Run it many times to measure reliability." |
 
-The progress overlay shows scenario status in real-time:
-- ⏳ pending → 🔄 running → ✅ passed / ❌ failed
+### Key message
 
-### Step 4: View evidence chain
+kagent gets certified against 75 real infrastructure scenarios through AgentGateway. The leaderboard shows where it excels and where it needs work.
 
-Navigate to [localhost:28080/evidence](http://localhost:28080/evidence)
-
-Shows the evidence chain:
-- Every `run_command` call with mutation detection
-- `prescribe_smart` with risk assessment
-- `report` with verdict
-- Tool name, resource identity, risk level
-
-### Step 5: View certification results
-
-Navigate to [localhost:28080/lab/bench](http://localhost:28080/lab/bench)
-
-Shows the model leaderboard:
-- Pass rate, cost per pass, duration
-- "Most Reliable", "Best Value", "Fastest" rankings
-- Drill into individual runs at [/lab/bench/runs](http://localhost:28080/lab/bench/runs)
-
-### Step 6: Browse scenario catalog
-
-Navigate to [localhost:28080/lab/bench/scenarios](http://localhost:28080/lab/bench/scenarios)
-
-75 scenarios across two certification exams: CKA/CKS (Kubernetes, Helm, ArgoCD) and Terraform.
-Judges can see the full exam scope here.
-
-## What the Audience Sees
-
-| Step | URL | Shows |
-|------|-----|-------|
-| 1. Landing | [/lab](http://localhost:28080/lab) | Bench overview |
-| 2. Run | [/lab/run](http://localhost:28080/lab/run) | Select model + scenarios, trigger run |
-| 3. Progress | [/bench](http://localhost:28080/bench) | Real-time scenario execution |
-| 4. Evidence | [/evidence](http://localhost:28080/evidence) | Tool calls with risk levels, verdicts |
-| 5. Leaderboard | [/lab/bench](http://localhost:28080/lab/bench) | Model rankings, certification results |
-| 6. Run detail | [/lab/bench/runs](http://localhost:28080/lab/bench/runs) | Timeline, transcript, tool calls |
-| 7. Compare | [/lab/bench/compare](http://localhost:28080/lab/bench/compare) | Side-by-side model comparison |
-| 8. Scenarios | [/lab/bench/scenarios](http://localhost:28080/lab/bench/scenarios) | 75 scenario catalog (CKA/CKS + Terraform) |
+---
 
 ## Cleanup
 
 ```bash
 docker compose down -v --remove-orphans
-kind delete cluster --name evidra-demo
+k3d cluster delete evidra-demo
 ```

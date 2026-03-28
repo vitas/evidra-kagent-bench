@@ -28,7 +28,8 @@ API key for authenticated pages: **`dev-api-key`**
 | 3 | Protocol | "Prescribe before. Report after. Every mutation through AgentGateway recorded." |
 | 4 | Signals | "8 detectors — retry loops, blast radius, risk escalation. Fires on day one." |
 | 5 | Benchmark table | "Sonnet discovers the protocol without any skill. The skill sharpens it." |
-| 6 | "Open Bench →" | Transition to Part 2 |
+| 6 | [/evidence](http://localhost:28080/evidence) | Brief: "21 entries, 11 protocol violations, 4 thrashing — real signals from real runs." |
+| 7 | "Open Bench →" | Transition to Part 2 |
 
 ### Key message
 
@@ -40,14 +41,14 @@ Evidra plugs in behind AgentGateway — no gateway code changes — and adds aut
 
 | Step | Page | Talking point |
 |------|------|---------------|
-| 7 | [/lab](http://localhost:28080/lab) | "75 scenarios. CKA/CKS + Terraform. Real clusters." |
-| 8 | [/lab/scenarios](http://localhost:28080/lab/scenarios) | Browse tracks, levels — "not synthetic benchmarks" |
-| 9 | [/lab/run](http://localhost:28080/lab/run) | Trigger `broken-deployment` via kagent A2A |
-| 10 | [/bench](http://localhost:28080/bench) | Watch progress — "kagent working through AgentGateway right now" |
-| 11 | [/lab/bench](http://localhost:28080/lab/bench) | Leaderboard — pass rate, cost, speed |
-| 12 | [/lab/bench/runs](http://localhost:28080/lab/bench/runs) | Drill into run — timeline, transcript |
-| 13 | Quick tour: insights, compare | "The data to improve kagent" |
-| 14 | Close | "Run it once to test. Run it many times to measure reliability." |
+| 8 | [/lab](http://localhost:28080/lab) | "75 scenarios. CKA/CKS + Terraform. Real clusters." |
+| 9 | [/lab/scenarios](http://localhost:28080/lab/scenarios) | Browse tracks, levels — "not synthetic benchmarks" |
+| 10 | [/lab/run](http://localhost:28080/lab/run) | Trigger `broken-deployment` via kagent A2A |
+| 11 | [/bench](http://localhost:28080/bench) | Watch progress — "kagent working through AgentGateway right now" |
+| 12 | [/lab/bench](http://localhost:28080/lab/bench) | Leaderboard — pass rate, cost, speed |
+| 13 | [/lab/bench/runs](http://localhost:28080/lab/bench/runs) | Drill into run — timeline, transcript |
+| 14 | Quick tour: insights, compare | "The data to improve kagent" |
+| 15 | Close | "Run it once to test. Run it many times to measure reliability." |
 
 ### Key message
 

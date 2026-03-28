@@ -104,7 +104,7 @@ services:
 
   # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
   bench-cli:
-    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.5.5}
+    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.5.6}
     environment:
       - EVIDRA_URL=http://evidra-api:8080
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}

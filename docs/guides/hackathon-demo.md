@@ -125,7 +125,7 @@ The tuned prompt produces a measurably higher reliability score.
 | **agentgateway** | MCP HTTP gateway | `cr.agentgateway.dev/agentgateway:0.11.1` |
 | **evidra-mcp** | run_command + collect_diagnostics + prescribe_smart/report + auto-evidence | `ghcr.io/vitas/evidra-mcp:latest` |
 | **kagent** | AI remediation agent | Built from `demo/kagent/Dockerfile` |
-| **kind-bootstrap** | Creates Kind K8s cluster | Built from `demo/kind/Dockerfile` |
+| **k3d-setup** | Creates k3d K8s cluster | `ghcr.io/k3d-io/k3d:5-dind` |
 | **demo-seed** | Injects failure into cluster | `alpine/k8s:1.32.2` |
 | **kagent-runner** | Orchestrates agent execution | `alpine/k8s:1.32.2` |
 
@@ -216,7 +216,7 @@ DEMO_RUN_MODE=both ./demo/run.sh
 
 ### What Happens
 
-1. **kind-bootstrap** creates a Kind cluster (or reuses existing)
+1. **k3d-setup** creates a k3d cluster on the compose network
 2. **demo-seed** deploys the baseline, then breaks it
 3. **kagent** starts, receives the task, calls MCP tools
 4. evidra-mcp records auto-evidence and forwards to evidra-api
@@ -229,7 +229,7 @@ DEMO_RUN_MODE=both ./demo/run.sh
 ```bash
 # Boot infrastructure
 docker compose -f docker-compose.yml up -d postgres evidra-api
-docker compose -f docker-compose.yml run --rm kind-bootstrap
+docker compose run --rm k3d-setup
 docker compose -f docker-compose.yml up -d agentgateway
 
 # Run "before" scenario

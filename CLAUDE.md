@@ -12,9 +12,8 @@ evidra-kagent-bench — benchmark harness for evaluating AI infrastructure agent
 # Set LLM provider keys (models with a configured key appear as available in the bench UI)
 export DEEPSEEK_API_KEY=your-key
 
-# Create Kind cluster (one-time — creates 'kind' network + kubeconfig)
-docker compose build kind-bootstrap
-docker compose run --rm kind-bootstrap
+# Create k3d cluster (one-time)
+docker compose run --rm k3d-setup
 
 # Boot infrastructure
 docker compose up -d

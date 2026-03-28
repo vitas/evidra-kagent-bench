@@ -15,7 +15,7 @@ via Docker Compose. All UIs and APIs are exposed through Traefik on port `28080`
 | **bench-ui** | Certification/leaderboard viewer, served under `/lab/` |
 | **agentgateway** | MCP HTTP gateway for kagent → evidra-mcp routing |
 | **kagent** | Google ADK remediation agent (built locally) |
-| **kind-bootstrap** | Creates Kind K8s cluster (run once before stack) |
+| **k3d-setup** | Creates k3d K8s cluster (run once before stack) |
 
 ## Setup
 
@@ -24,9 +24,8 @@ via Docker Compose. All UIs and APIs are exposed through Traefik on port `28080`
 cp .env.example .env
 # Edit .env — set at least one provider key (e.g. DEEPSEEK_API_KEY)
 
-# 2. Create Kind cluster (one-time)
-docker compose build kind-bootstrap
-docker compose run --rm kind-bootstrap
+# 2. Create k3d cluster (one-time)
+docker compose run --rm k3d-setup
 
 # 3. Boot the stack
 docker compose up -d
@@ -39,8 +38,8 @@ docker compose up -d
 
 ## How It Works
 
-1. `kind-bootstrap` creates or reuses a Kind cluster and exports a shared
-   kubeconfig to the `kubeconfig` volume.
+1. `k3d-setup` creates a k3d cluster on the compose network and exports
+   kubeconfig to the shared volume. No external network needed.
 
 2. `bench-cli` starts as a service on port `8090`, syncs its 75 bundled
    scenarios to evidra-api on startup, and waits for certify requests.
@@ -48,9 +47,10 @@ docker compose up -d
 3. When you trigger a run from the UI (or via `POST /v1/bench/trigger`),
    evidra-api delegates to bench-cli via `POST /v1/certify`.
 
-4. bench-cli provisions a namespace in the Kind cluster, injects the failure
+4. bench-cli provisions a namespace in the k3d cluster, injects the failure
    scenario, runs the LLM agent loop (via evidra-mcp for tool calls), and
-   verifies the outcome.
+   verifies the outcome. For A2A runs (`execution_mode: "a2a"`), bench-cli
+   delegates to kagent via A2A protocol instead of its own loop.
 
 5. During execution, bench-cli reports progress back to evidra-api via webhook
    (`POST /v1/bench/trigger/{id}/progress`), enabling real-time status in the UI.
@@ -74,7 +74,7 @@ Set in `.env`:
 | `EVIDRA_API_KEY` | `dev-api-key` | Evidra API auth token |
 | `KAGENT_MODEL` | `deepseek-chat` | Default model for kagent |
 | `DEMO_PORT` | `28080` | Host port for Traefik |
-| `DEMO_CLUSTER_NAME` | `evidra-demo` | Kind cluster name |
+| `DEMO_CLUSTER_NAME` | `evidra-demo` | k3d cluster name |
 
 Models with a configured provider key appear as available in the bench UI.
 
@@ -97,5 +97,5 @@ accepting connections due to ADK initialization.
 
 ```bash
 docker compose down -v --remove-orphans
-kind delete cluster --name evidra-demo
+k3d cluster delete evidra-demo
 ```

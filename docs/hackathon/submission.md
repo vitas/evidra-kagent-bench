@@ -207,8 +207,7 @@ Any audit consumer can ingest it. Evidra adds the intelligence.
 git clone https://github.com/vitas/evidra-kagent-bench
 cd evidra-kagent-bench
 cp .env.example .env   # set DEEPSEEK_API_KEY or another provider key
-docker compose build kind-bootstrap
-docker compose run --rm kind-bootstrap
+docker compose run --rm k3d-setup
 docker compose up -d
 open http://localhost:28080/lab
 ```

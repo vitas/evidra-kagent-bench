@@ -16,8 +16,7 @@ See [hackathon submission](docs/hackathon/submission.md) for the full story, and
 
 ```bash
 cp .env.example .env          # set at least one LLM provider key
-docker compose build kind-bootstrap
-docker compose run --rm kind-bootstrap
+docker compose run --rm k3d-setup
 docker compose up -d
 open http://localhost:28080/lab
 ```
@@ -48,7 +47,7 @@ npm run test:full    # triggers a real benchmark run
 
 ```bash
 docker compose down -v --remove-orphans
-kind delete cluster --name evidra-demo
+k3d cluster delete evidra-demo
 ```
 
 ## License

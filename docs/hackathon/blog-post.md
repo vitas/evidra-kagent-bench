@@ -211,9 +211,8 @@ cd evidra-kagent-bench
 cp .env.example .env
 # Edit .env — set DEEPSEEK_API_KEY (or another provider key)
 
-# Create Kind cluster (one-time)
-docker compose build kind-bootstrap
-docker compose run --rm kind-bootstrap
+# Create k3d cluster (one-time)
+docker compose run --rm k3d-setup
 
 # Boot the stack
 docker compose up -d

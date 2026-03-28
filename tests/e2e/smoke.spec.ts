@@ -47,7 +47,7 @@ test.describe("Smoke — UI pages load", () => {
     const firstScenario = page.locator('input[type="checkbox"]').first();
     await firstScenario.check();
 
-    await expect(page.locator("text=Generated Command")).toBeVisible();
+    await expect(page.getByText("CLI command", { exact: true })).toBeVisible();
     await page.screenshot({ path: "test-results/smoke-run-page.png" });
   });
 

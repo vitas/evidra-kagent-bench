@@ -71,7 +71,7 @@ test.describe("Full — trigger and verify benchmark run", () => {
   test("Run metadata records hosted a2a execution", async () => {
     expect(runId).toBeTruthy();
 
-    const runRes = await apiRequest(`/v1/bench/runs/${runId}`);
+    const runRes = await apiRequest(`/v1/bench/runs/${encodeURIComponent(runId)}`);
     expect(runRes.status).toBe(200);
 
     const run = await runRes.json();

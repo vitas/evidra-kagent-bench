@@ -103,7 +103,7 @@ services:
   # For A2A runs: delegates to kagent via INFRA_BENCH_A2A_AGENT_URL.
   # For direct runs: uses its own agent loop via DashScope (all models).
   bench-cli:
-    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.5.7}
+    image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.5.10}
     environment:
       - EVIDRA_URL=http://evidra-api:8080
       - EVIDRA_API_KEY=${EVIDRA_API_KEY:-dev-api-key}

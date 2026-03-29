@@ -55,6 +55,8 @@ signal-by-signal.
 ## Architecture
 
 ```
+bench-cli (scenario orchestrator)
+    ↓ A2A message/send
 kagent (Google ADK + LLM)
     ↓ MCP tool calls
 AgentGateway (auth, TLS, rate limits, access policies, sessions)
@@ -106,7 +108,7 @@ The benchmark suite gives kagent developers actionable data:
 - **Pass/fail on 75 scenarios** — which failures can kagent handle?
 - **Behavioral signals per run** — retry loops, scope creep, risk escalation
 - **Reliability score** — quantitative trust metric, not guesswork
-- **Model comparison** — DeepSeek vs GPT-4o vs Claude on the same scenarios
+- **Model comparison** — Claude vs DeepSeek vs Gemini on the same scenarios
 - **Regression detection** — run after prompt changes, prove improvement
 
 ## The Benchmark: 75 Infrastructure Scenarios
@@ -206,7 +208,7 @@ Any audit consumer can ingest it. Evidra adds the intelligence.
 ```bash
 git clone https://github.com/vitas/evidra-kagent-bench
 cd evidra-kagent-bench
-cp .env.example .env   # set DEEPSEEK_API_KEY or another provider key
+cp .env.example .env   # set GEMINI_API_KEY + DASHSCOPE_API_KEY
 docker compose run --rm k3d-setup
 docker compose up -d
 open http://localhost:28080/lab
@@ -223,9 +225,10 @@ open http://localhost:28080/lab
 | All Runs | [/lab/bench/runs](http://localhost:28080/lab/bench/runs) | Drill into individual run details |
 | Scenarios | [/lab/bench/scenarios](http://localhost:28080/lab/bench/scenarios) | 75 scenario catalog |
 
-## Repositories
+## Links
 
 - **Benchmark harness:** https://github.com/vitas/evidra-kagent-bench
-- **Evidra core:** https://github.com/vitas/evidra
+- **Evidra core:** https://github.com/vitas/evidra · [evidra.cc](https://evidra.cc)
+- **Bench Lab (hosted):** [lab.evidra.cc](https://lab.evidra.cc)
 - **ADK fix PR:** https://github.com/google/adk-python/pull/4985
 - **kagent issue:** https://github.com/kagent-dev/kagent/issues/1532

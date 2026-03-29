@@ -84,7 +84,9 @@ to see to improve it.
 ## How It Works
 
 ```
-kagent / bench-cli agent loop
+bench-cli (orchestrator)
+    ↓ A2A message/send
+kagent (Google ADK agent loop)
     ↓ MCP tool calls
 AgentGateway (auth, rate limits, access policies)
     ↓ routes to backend
@@ -98,11 +100,12 @@ postgres (evidence chain, bench runs, scorecards)
 The flow:
 
 1. Select scenarios and model from the bench UI
-2. bench-cli provisions a namespace, injects the failure, runs the agent
-3. Agent calls tools through AgentGateway → evidra-mcp → kubectl
-4. Every mutation is automatically recorded as signed evidence
-5. Evidra detects behavioral patterns in real-time
-6. Results appear in the leaderboard with pass rate, cost, and reliability score
+2. bench-cli provisions a namespace, injects the failure
+3. bench-cli delegates to kagent via A2A protocol (`execution_mode: "a2a"`)
+4. kagent calls tools through AgentGateway → evidra-mcp → kubectl
+5. Every mutation is automatically recorded as signed evidence
+6. bench-cli verifies the fix, submits the result
+7. Results appear in the leaderboard with pass rate, cost, and reliability score
 
 ### What Evidra adds to AgentGateway
 
@@ -137,9 +140,9 @@ handles well and which need work.
 model upgrades, or ADK updates. Compare before/after to prove
 improvements and catch regressions.
 
-**Model comparison.** Run the same scenarios across DeepSeek, GPT-4o,
-Claude, Gemini. The leaderboard shows which model is most reliable,
-cheapest per pass, and fastest — specifically for kagent's use case.
+**Model comparison.** Run the same scenarios across Claude, DeepSeek,
+Gemini. The leaderboard shows which model is most reliable, cheapest
+per pass, and fastest — specifically for kagent's use case.
 
 ## Five Demo Scenarios
 
@@ -209,7 +212,7 @@ cd evidra-kagent-bench
 
 # Configure LLM provider
 cp .env.example .env
-# Edit .env — set DEEPSEEK_API_KEY (or another provider key)
+# Edit .env — set GEMINI_API_KEY (for kagent) + DASHSCOPE_API_KEY (for bench-cli)
 
 # Create k3d cluster (one-time)
 docker compose run --rm k3d-setup
@@ -235,7 +238,8 @@ open http://localhost:28080/lab
 ## Links
 
 - **Benchmark harness:** [evidra-kagent-bench](https://github.com/vitas/evidra-kagent-bench)
-- **Evidra core:** [evidra](https://github.com/vitas/evidra)
+- **Evidra core:** [evidra](https://github.com/vitas/evidra) · [evidra.cc](https://evidra.cc)
+- **Bench Lab (hosted):** [lab.evidra.cc](https://lab.evidra.cc)
 - **ADK bug fix:** [google/adk-python#4985](https://github.com/google/adk-python/pull/4985)
 - **AgentGateway:** [agentgateway.dev](https://agentgateway.dev)
 - **kagent:** [kagent-dev/kagent](https://github.com/kagent-dev/kagent)

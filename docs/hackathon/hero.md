@@ -4,7 +4,7 @@ AgentGateway routes MCP traffic. But it doesn't know if the agent behind it is s
 
 Evidra plugs in behind AgentGateway — no gateway code changes — and adds auto-evidence recording, risk assessment, and 8 behavioral signal detectors on every tool call flowing through the gateway.
 
-We used it to build certification exams for kagent: 75 real failure scenarios (CKA/CKS + Terraform) against real Kind clusters. The agent doesn't just need to fix the problem — it needs to fix it without setting off Evidra's detectors.
+We used it to build certification exams for kagent: 75 real failure scenarios (CKA/CKS + Terraform) against real K8s clusters. The agent doesn't just need to fix the problem — it needs to fix it without setting off Evidra's detectors.
 
 Along the way we fixed a tool-calling bug in Google ADK (google/adk-python#4985) and caught a supply chain attack in LiteLLM v1.82.8.
 

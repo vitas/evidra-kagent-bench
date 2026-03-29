@@ -5,8 +5,11 @@ import sys
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SCENARIOS_JSON = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/git/evidra-bench/runs/export/bench-scenarios.json")
-RUNS_JSON = sys.argv[2] if len(sys.argv) > 2 else os.path.expanduser("~/git/evidra-bench/runs/export/demo-runs.json")
+if len(sys.argv) < 3:
+    print("Usage: import-json.py <scenarios.json> <runs.json>", file=sys.stderr)
+    sys.exit(1)
+SCENARIOS_JSON = sys.argv[1]
+RUNS_JSON = sys.argv[2]
 OUTPUT = os.path.join(SCRIPT_DIR, "seed-data.sql")
 
 

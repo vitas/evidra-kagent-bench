@@ -54,7 +54,7 @@ it needs work, scenario by scenario.
 
 ## The Benchmark
 
-75 scenarios bundled in bench-cli, run against real Kind clusters:
+75 scenarios bundled in bench-cli, run against real K8s clusters:
 
 **CKA/CKS Exam** — 68 Kubernetes scenarios:
 

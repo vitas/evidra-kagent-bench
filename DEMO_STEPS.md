@@ -29,21 +29,21 @@ API key for authenticated pages: **`dev-api-key`**
 | 4 | Signals | "8 detectors — retry loops, blast radius, risk escalation. Fires on day one." |
 | 5 | Benchmark table | "Sonnet discovers the protocol without any skill. The skill sharpens it." |
 
-### Live comparison: none vs proxy
+### Live comparison: none vs smart
 
 Show the same agent, same scenario — with and without evidence.
 
 | Run | Trigger | What judges see |
 |-----|---------|----------------|
 | **Baseline** | `execution_mode: "a2a", evidence_mode: "none"` | kagent fixes it. Pass/fail only. No audit trail. |
-| **With Evidra** | `execution_mode: "a2a", evidence_mode: "proxy"` | Same kagent, same fix, zero code changes. Evidence page shows full audit trail with risk classification. |
+| **With Evidra** | `execution_mode: "a2a", evidence_mode: "smart"` | Same kagent, same fix. Evidence page shows full audit trail with risk classification. |
 
 Talking point: *"Flip a switch. Same agent, same scenario. Now you see every mutation, every risk level, every verdict."*
 
 | Step | Page | Talking point |
 |------|------|---------------|
 | 6 | [/bench](http://localhost:28080/bench) | Trigger baseline run (none), watch it pass |
-| 7 | [/bench](http://localhost:28080/bench) | Trigger proxy run, watch it pass |
+| 7 | [/bench](http://localhost:28080/bench) | Trigger smart run, watch it pass |
 | 8 | [/evidence](http://localhost:28080/evidence) | "Evidence appeared — prescribe/report pairs, risk levels, signals. Zero agent changes." |
 
 ### Key message

@@ -22,7 +22,7 @@ services:
       POSTGRES_PASSWORD: evidra
       POSTGRES_DB: evidra
     volumes:
-      - ./demo/postgres/data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U evidra"]
       interval: 5s
@@ -171,3 +171,4 @@ services:
 volumes:
   kubeconfig:   # K3d cluster kubeconfig (shared across services)
   bench-runs:   # bench-cli scenario run artifacts
+  pgdata:       # PostgreSQL data

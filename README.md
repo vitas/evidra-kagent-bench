@@ -50,6 +50,14 @@ docker compose down -v --remove-orphans
 k3d cluster delete evidra-demo
 ```
 
+## Links
+
+- **Evidra** — [evidra.cc](https://evidra.cc) · [GitHub](https://github.com/vitas/evidra)
+- **Bench Lab** — [lab.evidra.cc](https://lab.evidra.cc)
+- **AgentGateway** — [agentgateway.dev](https://agentgateway.dev)
+- **kagent** — [kagent-dev/kagent](https://github.com/kagent-dev/kagent)
+- **ADK bug fix** — [google/adk-python#4985](https://github.com/google/adk-python/pull/4985)
+
 ## License
 
 Apache 2.0

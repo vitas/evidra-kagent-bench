@@ -1,35 +1,25 @@
 /**
- * Demo recording — walks through DEMO_STEPS.md with human-like pauses.
- * Outputs a video to test-results/demo-recording/.
+ * Demo recording — with subtitle overlays (target ~1:30).
+ * Outputs video to test-results/.
  *
  * Run:
- *   cd tests/e2e && npx playwright test demo-recording.spec.ts --headed
- *
- * The video is saved automatically. For higher quality:
- *   - Use --headed to see it live
- *   - Browser viewport is set to 1280x720 (720p)
+ *   cd tests/e2e && npx playwright test demo-recording.spec.ts
  */
 
-import { test, expect, type Page } from "@playwright/test";
+import { test, type Page } from "@playwright/test";
 
 const BASE_URL = process.env.EVIDRA_URL || "http://localhost:28080";
 const API_KEY = process.env.EVIDRA_API_KEY || "dev-api-key";
 const LAB_URL = `${BASE_URL}/lab`;
 
-// Human-like delays
-const PAUSE = 2_000;       // between actions
-const READ = 4_000;        // time to "read" a page
-const LONG_READ = 6_000;   // time to absorb complex content
-const SCROLL_PAUSE = 1_500; // between scroll steps
-
-async function humanPause(ms = PAUSE) {
+async function wait(ms: number) {
   await new Promise((r) => setTimeout(r, ms));
 }
 
-async function slowScroll(page: Page, steps = 3) {
+async function slowScroll(page: Page, steps: number, pause = 1200) {
   for (let i = 0; i < steps; i++) {
-    await page.mouse.wheel(0, 300);
-    await humanPause(SCROLL_PAUSE);
+    await page.mouse.wheel(0, 280);
+    await wait(pause);
   }
 }
 
@@ -37,161 +27,138 @@ async function setApiKey(page: Page) {
   const keyInput = page.locator(
     'input[type="password"], input[placeholder*="API"], input[placeholder*="api"]'
   );
-  if (await keyInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await humanPause(1000);
+  if (await keyInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await wait(500);
     await keyInput.fill(API_KEY);
-    await humanPause(500);
+    await wait(400);
     await page.keyboard.press("Enter");
-    await humanPause(PAUSE);
+    await wait(1500);
   }
 }
 
-// Configure video recording
+async function showTitle(page: Page, text: string, duration = 3000) {
+  await page.evaluate((t) => {
+    let bar = document.getElementById("demo-subtitle");
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "demo-subtitle";
+      Object.assign(bar.style, {
+        position: "fixed",
+        bottom: "0",
+        left: "0",
+        right: "0",
+        zIndex: "99999",
+        background: "linear-gradient(180deg, transparent 0%, rgba(8,8,13,0.95) 30%)",
+        padding: "24px 40px 20px",
+        fontFamily: "'Outfit', 'Helvetica Neue', sans-serif",
+        fontSize: "18px",
+        fontWeight: "500",
+        color: "#E8E6F0",
+        letterSpacing: "0.01em",
+        textAlign: "center",
+        transition: "opacity 0.4s ease",
+        pointerEvents: "none",
+      });
+      document.body.appendChild(bar);
+    }
+    bar.textContent = t;
+    bar.style.opacity = "1";
+  }, text);
+  await wait(duration);
+}
+
+async function hideTitle(page: Page) {
+  await page.evaluate(() => {
+    const bar = document.getElementById("demo-subtitle");
+    if (bar) bar.style.opacity = "0";
+  });
+  await wait(400);
+}
+
 test.use({
   video: { mode: "on", size: { width: 1280, height: 720 } },
   viewport: { width: 1280, height: 720 },
-  launchOptions: { slowMo: 100 },
+  launchOptions: { slowMo: 80 },
 });
 
 test.describe("Demo Recording", () => {
-  test.setTimeout(600_000); // 10 minutes
+  test.setTimeout(300_000);
 
-  test("Full demo walkthrough", async ({ page }) => {
+  test("Part 1 — AgentGateway + Evidra", async ({ page }) => {
 
-    // ═══════════════════════════════════════════════════
-    // PART 1: Secure & Govern MCP (AgentGateway + Evidra)
-    // ═══════════════════════════════════════════════════
-
-    // Step 1: Evidra landing — hero
+    // 1. Evidra landing
     await page.goto(BASE_URL);
     await page.waitForLoadState("networkidle");
-    await humanPause(PAUSE);
+    await showTitle(page, "Evidra gives AgentGateway an evidence and intelligence layer", 4000);
+    await hideTitle(page);
 
-    // Step 2: Quick scroll to Signals section (skip protocol + architecture)
+    // 2. Scroll to signals, pause at MCP setup
     await page.locator("text=Patterns That Fire").scrollIntoViewIfNeeded();
-    await humanPause(READ);
+    await showTitle(page, "8 behavioral detectors fire on every tool call flowing through AgentGateway", 3000);
+    await hideTitle(page);
 
-    // Step 3: Dashboard
-    await page.goto(`${BASE_URL}/bench`);
+    await page.locator("text=Give Your Agent the Protocol").scrollIntoViewIfNeeded();
+    await showTitle(page, "kagent connects via MCP — one command, zero agent code changes", 4000);
+    await hideTitle(page);
+
+    // 3. Dashboard
+    await page.goto(`${BASE_URL}/dashboard`);
     await page.waitForLoadState("networkidle");
     await setApiKey(page);
-    await humanPause(READ);
+    await showTitle(page, "kagent's reliability dashboard — signals, actors, risk breakdown", 5000);
+    await hideTitle(page);
 
-    // Step 4: Click Evidence link from dashboard
+    // 4. Evidence chain
     const evidenceLink = page.locator('a[href="/evidence"]').first();
-    if (await evidenceLink.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await evidenceLink.isVisible({ timeout: 2000 }).catch(() => false)) {
       await evidenceLink.click();
     } else {
       await page.goto(`${BASE_URL}/evidence`);
     }
     await page.waitForLoadState("networkidle");
     await setApiKey(page);
-    await humanPause(READ);
+    await showTitle(page, "Every kagent mutation through AgentGateway — recorded, signed, risk-assessed", 5000);
+    await hideTitle(page);
 
-    // Trigger baseline run (none)
-    const triggerBtn = page.locator("text=Run Benchmark").first();
-    if (await triggerBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await triggerBtn.click();
-      await humanPause(PAUSE);
-
-      // Fill model
-      const modelInput = page.locator('input[placeholder*="model"], input[placeholder*="Model"]').first();
-      if (await modelInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await modelInput.fill("gemini-2.5-flash");
-        await humanPause(1000);
-      }
-
-      // Select scenario
-      const scenario = page.locator("text=broken-deployment").first();
-      if (await scenario.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await scenario.click();
-        await humanPause(1000);
-      }
-
-      // Select evidence mode if visible
-      const baselineBtn = page.locator("text=Baseline").first();
-      if (await baselineBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await baselineBtn.click();
-        await humanPause(1000);
-      }
-
-      // Start
-      const startBtn = page.locator('button:has-text("Start"), button:has-text("Run")').last();
-      if (await startBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await startBtn.click();
-      }
-    }
-
-    // Watch progress overlay
-    await humanPause(READ);
-
-    // Wait for run to complete (poll visually)
-    for (let i = 0; i < 30; i++) {
-      await humanPause(3000);
-      const body = await page.textContent("body");
-      if (body?.includes("completed") || body?.includes("passed") || body?.includes("failed")) {
-        break;
-      }
-    }
-    await humanPause(READ);
-
-    // ═══════════════════════════════════════════════════
-    // PART 2: Building Cool Agents (kagent Certification)
-    // ═══════════════════════════════════════════════════
-
-    // Step 9: Bench UI landing
+    // 5. Bench landing
     await page.goto(LAB_URL);
     await page.waitForLoadState("networkidle");
-    await humanPause(LONG_READ);
+    await showTitle(page, "75 CKA/CKS + Terraform scenarios — certification exams for kagent", 5000);
+    await hideTitle(page);
 
-    // Scroll through landing
-    await slowScroll(page, 3);
-    await humanPause(READ);
-
-    // Step 10: Scenario catalog
+    // 6. Scenarios — slow scroll
     await page.goto(`${LAB_URL}/scenarios`);
     await page.waitForLoadState("networkidle");
-    await humanPause(LONG_READ);
+    await showTitle(page, "Real K8s failures — kagent must diagnose, fix, and verify each one");
+    await slowScroll(page, 4, 1300);
+    await hideTitle(page);
 
-    // Scroll scenarios
-    await slowScroll(page, 2);
-    await humanPause(READ);
-
-    // Step 12: Leaderboard
+    // 7. Leaderboard
     await page.goto(`${LAB_URL}/bench`);
     await page.waitForLoadState("networkidle");
-    await humanPause(LONG_READ);
+    await showTitle(page, "kagent leaderboard — 3 models, 996 runs, pass^k reliability scoring", 7000);
+    await hideTitle(page);
 
-    // Scroll leaderboard
-    await slowScroll(page, 2);
-    await humanPause(READ);
-
-    // Step 13: Click into a run
+    // 8. Runs — skip run detail (empty timeline issue), go straight to list
     await page.goto(`${LAB_URL}/bench/runs`);
     await page.waitForLoadState("networkidle");
-    await humanPause(READ);
+    await showTitle(page, "Every kagent run — scenario, model, duration, turns, checks", 5000);
+    await hideTitle(page);
 
-    // Click first run
-    const firstRun = page.locator("table tbody tr a, table tbody tr").first();
-    if (await firstRun.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await firstRun.click();
-      await page.waitForLoadState("networkidle");
-      await humanPause(LONG_READ);
-      await slowScroll(page, 3);
-      await humanPause(READ);
-    }
-
-    // Step 14: Insights
+    // 9. Insights
     await page.goto(`${LAB_URL}/bench/insights`);
     await page.waitForLoadState("networkidle");
-    await humanPause(READ);
+    await showTitle(page, "Which scenarios break kagent? Failure patterns across models", 4000);
+    await hideTitle(page);
 
-    // Compare
+    // 10. Compare
     await page.goto(`${LAB_URL}/bench/compare`);
     await page.waitForLoadState("networkidle");
-    await humanPause(READ);
+    await showTitle(page, "Side-by-side — which model makes kagent most reliable?", 5000);
+    await hideTitle(page);
 
-    // Final pause
-    await humanPause(LONG_READ);
+    // Closing title
+    await showTitle(page, "Run it once to test. Run it many times to measure reliability.", 3000);
+    await hideTitle(page);
   });
 });

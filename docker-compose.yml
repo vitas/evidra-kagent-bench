@@ -39,7 +39,7 @@ services:
       - EVIDRA_BENCH_SERVICE_URL=http://bench-cli:8090
       - EVIDRA_SELF_URL=http://evidra-api:8080
       # LLM provider API keys — models with a set key appear as available in the UI.
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-${LLM_API_KEY:-}}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
@@ -58,8 +58,6 @@ services:
     depends_on:
       evidra-api:
         condition: service_started
-    # Note: healthcheck removed — distroless image has no shell/curl/wget.
-    # The service is healthy when it starts accepting MCP connections.
 
   agentgateway:
     image: cr.agentgateway.dev/agentgateway:0.11.1
@@ -88,7 +86,6 @@ services:
     restart: "no"
 
   # K3d cluster setup — creates or reuses a K3s cluster on the compose network.
-  # No external network needed — k3d joins the default network via --network flag.
   #   docker compose run --rm k3d-setup
   k3d-setup:
     image: ghcr.io/k3d-io/k3d:5-dind
@@ -102,7 +99,9 @@ services:
       - ./demo/k3d/setup.sh:/setup/setup.sh:ro
       - kubeconfig:/output
 
-  # Bench service — runs scenarios via provider mode (built-in LLM agent loop).
+  # Bench service — orchestrates scenario execution.
+  # For A2A runs: delegates to kagent via INFRA_BENCH_A2A_AGENT_URL.
+  # For direct runs: uses its own agent loop via DashScope (all models).
   bench-cli:
     image: ${BENCH_IMAGE:-ghcr.io/vitas/bench-cli:0.5.7}
     environment:
@@ -113,12 +112,11 @@ services:
       - KUBECONFIG=/kube/config
       - INFRA_BENCH_SCENARIOS_DIR=/scenarios
       - INFRA_BENCH_PROVIDER=${BENCH_PROVIDER:-bifrost}
-      - INFRA_BENCH_MODEL=${KAGENT_MODEL:-deepseek-chat}
       - INFRA_BENCH_MCP_SERVER=evidra-mcp --signing-mode optional -url http://evidra-api:8080 -api-key ${EVIDRA_API_KEY:-dev-api-key}
       - INFRA_BENCH_CLUSTER_NAME=${DEMO_CLUSTER_NAME:-evidra-demo}
       - INFRA_BENCH_REUSE_CLUSTER=true
       - INFRA_BENCH_PARALLEL=${BENCH_PARALLEL:-1}
-      - INFRA_BENCH_BIFROST_URL=${LLM_BASE_URL:-https://api.deepseek.com/v1}
+      - INFRA_BENCH_BIFROST_URL=${LLM_BASE_URL:-https://dashscope-intl.aliyuncs.com/compatible-mode/v1}
       - EVIDRA_BIFROST_AUTH_BEARER=${LLM_API_KEY:-}
       - INFRA_BENCH_A2A_AGENT_URL=http://kagent:8080
     volumes:
@@ -138,11 +136,10 @@ services:
       start_period: 30s
 
   # Bench UI — certification/leaderboard viewer, served under /lab/ via Traefik.
-  # Pre-built with demo settings (localhost:28080, /lab/ base path).
   bench-ui:
     image: ${BENCH_UI_IMAGE:-ghcr.io/vitas/bench-ui:demo}
 
-  # kagent — Google ADK-based K8s agent, benchmarked via agentgateway + evidra-mcp.
+  # kagent — Google ADK agent, certified via A2A through AgentGateway + evidra-mcp.
   kagent:
     build:
       context: ./demo/kagent
@@ -152,11 +149,11 @@ services:
       - KAGENT_NAME=demoagent
       - KAGENT_NAMESPACE=demo
       - KAGENT_MCP_URL=http://agentgateway:3000/mcp/http
-      - KAGENT_MODEL=${KAGENT_MODEL:-deepseek-chat}
+      - KAGENT_MODEL=${KAGENT_MODEL:-gemini-2.5-flash}
       - KAGENT_MODEL_PROVIDER=${KAGENT_MODEL_PROVIDER:-openai}
-      - OPENAI_BASE_URL=${LLM_BASE_URL:-}
-      - OPENAI_API_KEY=${LLM_API_KEY:-}
-      - DEEPSEEK_API_KEY=${LLM_API_KEY:-}
+      - OPENAI_BASE_URL=${KAGENT_BASE_URL:-${LLM_BASE_URL:-}}
+      - OPENAI_API_KEY=${KAGENT_API_KEY:-${LLM_API_KEY:-}}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - KAGENT_TOOL_ALLOW_LIST=${KAGENT_TOOL_ALLOW_LIST:-}
       - KAGENT_SYSTEM_PROMPT_FILE=/demo/prompts/kagent-${DEMO_RUN_LABEL:-before}.md
     volumes:

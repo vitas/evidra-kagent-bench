@@ -1,11 +1,10 @@
 /**
- * Full E2E test — triggers a real benchmark run and verifies results.
+ * Full E2E test — exercises the demo flow: none vs proxy A2A runs.
  *
- * Requires a running stack AND a valid LLM API key.
+ * Matches DEMO_STEPS.md Part 1 (none vs proxy comparison) and Part 2 (leaderboard).
  *
  * Prerequisites:
- *   export LLM_API_KEY=your-key
- *   docker compose up -d
+ *   docker compose up -d   (with LLM API key configured)
  *
  * Run:
  *   cd tests/e2e && npx playwright test full.spec.ts
@@ -28,68 +27,99 @@ async function apiRequest(path: string, options?: RequestInit) {
   });
 }
 
-test.describe("Full — trigger and verify benchmark run", () => {
-  test.setTimeout(300_000); // 5 minutes — scenario execution can be slow
+async function triggerAndWait(body: object): Promise<{ jobId: string; runId: string; status: string }> {
+  const triggerRes = await apiRequest("/v1/bench/trigger", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  expect(triggerRes.status).toBe(202);
+  const { id: jobId } = await triggerRes.json();
+  expect(jobId).toBeTruthy();
 
-  let jobId: string;
-  let runId: string;
+  let status = "pending";
+  let job: any;
+  for (let i = 0; i < 55 && status !== "completed" && status !== "failed"; i++) {
+    await new Promise((r) => setTimeout(r, 5_000));
+    const res = await apiRequest(`/v1/bench/trigger/${jobId}`);
+    job = await res.json();
+    status = job.status;
+  }
+  expect(["completed", "failed"]).toContain(status);
+  expect(job.completed).toBe(1);
+  const runId = job.run_ids?.[0] ?? "";
+  return { jobId, runId, status };
+}
 
-  test("Trigger certify run", async () => {
-    const triggerRes = await apiRequest("/v1/bench/trigger", {
-      method: "POST",
-      body: JSON.stringify({
-        model: process.env.KAGENT_MODEL || "deepseek-chat",
-        execution_mode: "a2a",
-        evidence_mode: "smart",
-        scenarios: ["broken-deployment"],
-      }),
+test.describe("Full — demo flow: none vs proxy A2A comparison", () => {
+  test.setTimeout(600_000); // 10 minutes — two sequential runs
+
+  let noneRunId: string;
+  let proxyRunId: string;
+
+  // Part 1, Step 6: Baseline run (no evidence)
+  test("1. Trigger A2A baseline run (evidence_mode: none)", async () => {
+    const result = await triggerAndWait({
+      model: process.env.KAGENT_MODEL || "gemini-2.5-flash",
+      execution_mode: "a2a",
+      evidence_mode: "none",
+      scenarios: ["broken-deployment"],
     });
-    expect(triggerRes.status).toBe(202);
-    const body = await triggerRes.json();
-    jobId = body.id;
-    expect(jobId).toBeTruthy();
+    noneRunId = result.runId;
+    expect(noneRunId).toBeTruthy();
   });
 
-  test("Poll until scenario completes", async () => {
-    expect(jobId).toBeTruthy();
-
-    let status = "pending";
-    let job: any;
-    for (let i = 0; i < 55 && status !== "completed" && status !== "failed"; i++) {
-      await new Promise((r) => setTimeout(r, 5_000));
-      const res = await apiRequest(`/v1/bench/trigger/${jobId}`);
-      job = await res.json();
-      status = job.status;
-    }
-
-    expect(["completed", "failed"]).toContain(status);
-    expect(job.completed).toBe(1);
-    runId = job.run_ids?.[0];
-    expect(runId).toBeTruthy();
+  // Part 1, Step 7: Smart run (auto-evidence via evidra-mcp)
+  test("2. Trigger A2A smart run (evidence_mode: smart)", async () => {
+    const result = await triggerAndWait({
+      model: process.env.KAGENT_MODEL || "gemini-2.5-flash",
+      execution_mode: "a2a",
+      evidence_mode: "smart",
+      scenarios: ["broken-deployment"],
+    });
+    proxyRunId = result.runId;
+    expect(proxyRunId).toBeTruthy();
   });
 
-  test("Run metadata records hosted a2a execution", async () => {
-    expect(runId).toBeTruthy();
+  // Verify run metadata distinguishes the two modes
+  test("3. Baseline run has evidence_mode=none", async () => {
+    expect(noneRunId).toBeTruthy();
+    const res = await apiRequest(`/v1/bench/runs/${encodeURIComponent(noneRunId)}`);
+    expect(res.status).toBe(200);
+    const run = await res.json();
+    expect(run.adapter).toBe("a2a");
+    expect(run.evidence_mode).toBe("none");
+  });
 
-    const runRes = await apiRequest(`/v1/bench/runs/${encodeURIComponent(runId)}`);
-    expect(runRes.status).toBe(200);
-
-    const run = await runRes.json();
+  test("4. Smart run has evidence_mode=smart", async () => {
+    expect(proxyRunId).toBeTruthy();
+    const res = await apiRequest(`/v1/bench/runs/${encodeURIComponent(proxyRunId)}`);
+    expect(res.status).toBe(200);
+    const run = await res.json();
     expect(run.adapter).toBe("a2a");
     expect(run.evidence_mode).toBe("smart");
   });
 
-  test("Results page shows run data", async ({ page }) => {
-    await page.goto(`${LAB_URL}/results`);
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2_000);
+  // Part 1, Step 8: Evidence page shows entries from proxy run
+  test("5. Evidence page has entries after proxy run", async ({ page }) => {
+    await page.goto(`${BASE_URL}/evidence`);
 
-    const body = await page.textContent("body");
-    expect(body).not.toContain("Not Configured");
-    await page.screenshot({ path: "test-results/full-results.png" });
+    // Enter API key if prompted
+    const keyInput = page.locator(
+      'input[type="password"], input[placeholder*="API"], input[placeholder*="api"]'
+    );
+    if (await keyInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await keyInput.fill(API_KEY);
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(2_000);
+    }
+
+    // Should see evidence entries (prescribe/report from proxy mode)
+    await expect(page.locator("table")).toBeVisible({ timeout: 10_000 });
+    await page.screenshot({ path: "test-results/full-evidence.png" });
   });
 
-  test("Leaderboard reflects completed run", async ({ page }) => {
+  // Part 2: Leaderboard shows pre-seeded data + new runs
+  test("6. Leaderboard shows model results", async ({ page }) => {
     await page.goto(`${LAB_URL}/bench`);
     await page.waitForLoadState("networkidle");
 

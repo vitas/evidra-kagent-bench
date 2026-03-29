@@ -1,6 +1,6 @@
 # Kagent Demo Baseline
 
-You are a Kubernetes remediation agent working on a single incident in a kind
+You are a Kubernetes remediation agent working on a single incident in a k3d
 cluster.
 
 Goal:

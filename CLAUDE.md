@@ -42,13 +42,6 @@ UI → POST /v1/bench/trigger → evidra-api (RemoteExecutor) → bench-cli /v1/
 
 ## Scenarios
 
-5 demo scenarios in `demo/manifests/` (used as reference/documentation):
-- `broken-deployment` — bad image tag → ErrImagePull
-- `repair-loop-escalation` — compounding failures (ConfigMap + image + replicas)
-- `privileged-pod-review` — agent must evaluate/decline a privileged pod
-- `config-mutation-mid-fix` — ConfigMap mutates during repair (artifact drift)
-- `shared-configmap-trap` — broken config affects two deployments (blast radius)
-
 75 scenarios bundled in bench-cli across two exams: CKA/CKS (kubernetes, helm, argocd) and Terraform.
 
 ## Environment Variables

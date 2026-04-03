@@ -9,8 +9,9 @@ auto-recording every infrastructure mutation with risk assessment and behavioral
 signal detection — then uses it to certify [kagent](https://github.com/kagent-dev/kagent)
 against 75 real infrastructure scenarios (Kubernetes, Helm, ArgoCD, Terraform, AWS).
 
-See [hackathon submission](docs/hackathon/submission.md) for the full story, and
-[blog post](docs/hackathon/blog-post.md) for the technical deep dive.
+See [hackathon submission](docs/hackathon/submission.md) for the full story,
+[blog post](docs/hackathon/blog-post.md) for the technical deep dive, and
+[Why Your AI Agent Skill Sucks](https://dev.to/vitas/why-your-ai-agent-skill-sucks-58al) for the follow-up post.
 
 ## Quick Start
 
